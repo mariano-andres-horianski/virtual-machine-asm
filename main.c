@@ -116,7 +116,7 @@ void ejecucion(uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint32_t 
     registros[IP] = registros[CS];
     dirFisica = calcDirFisica(tablaSegmento,registros[IP],1);  // 1?? ref de la cantidad de bytes de acceso
     while (dirFisica != 0xFFFFFFFF){
-        instruccion = registros[IP]; 
+        instruccion = memoria[registros[IP]]; 
         codInstruccion = instruccion & 0x1F;
         tipoA =  (codInstruccion >> 6) & 0x3;// 0x3 para que no sean shift aritmeticos
         tipoB = (instruccion >> 4) & 0x3;
