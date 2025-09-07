@@ -17,7 +17,7 @@ typedef struct {
 
 int main()
 {
-    char memoria[MEM];                         // memoria de 16 kib
+     char memoria[MEM];                         // memoria de 16 kib
     infoSegmento tablaSegmento[ENT];                    // tabla de segmentos sin inicializar
     uint32_t registros[REG];                            // cada pos tiene disponible 4 bytes >> con unsigned char tiene 1 byte
 
@@ -42,6 +42,45 @@ void inicioTablaSegmento(infoSegmento tabla[]){
     tabla[1].base = 0x0001;
     tabla[1].tamano = 0x0000;
 }
+
+void leerInstrucciones(){
+    char nombre[]="sample.vmx"; //el nombre debe ingresarse por terminal despues
+    FILE *arch=fopen(nombre,"rb");
+    int salir=1;
+    uint32_t OPC,OP1,OP2,lectura;
+    uint8_t instruccion; //tipo de entero de 8 bits sin signo
+    if (!arch)
+        printf("No se pudo abrir el archivo vmx");
+    else {
+        while (fread(&instruccion,1,1,arch) && salir){
+            OPC=instruccion & 0x1F;
+            OP2=instruccion >> 6;
+            OP1=(instruccion >> 4) & 0x03;
+            if (OP1==0 && OP2!=0)
+                OP1=OP2;
+            if ((OPC!=0x0F && OP1==0)||(OPC<=0x1F && OPC>=0x10 && OP2==0)){ //reviso si es una operacion invalida
+                printf("Operacion invalida");
+                salir=0;
+            }
+            else {
+                if (fread(&lectura,OP2,1,arch)==1){
+                    OP2=OP2 << 24;
+                    OP2=OP2 | lectura;
+                }
+                if (fread(&lectura,OP1,1,arch)==1){
+                    OP1=OP1 << 24;
+                    OP1=OP1 | lectura;
+                }
+                //Aca ya tengo OPC, OP1 y OP2 para ejecutar
+            }
+            
+        }
+        fclose(arch);
+
+    }
+}
+
 int leerEncabezado(){
 
 }
+
