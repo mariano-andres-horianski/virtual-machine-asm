@@ -109,8 +109,37 @@ int operando(uint8_t tipo){
                 cantByte = 0;
     return cantByte;
 }
+void leerInstrucciones(uint8_t instruccion, char memoria[], uint32_t registros[REG]){
+    //usar los OP para calcular los bytes que necesitamos leer y poner en lectura
+    int salir=1;
+    uint32_t OPC,OP1,OP2,lectura;
+    
+    
+    OPC=instruccion & 0x1F;
+    OP2=instruccion >> 6;
+    OP1=(instruccion >> 4) & 0x03;
+    if (OP1==0 && OP2!=0)
+        OP1=OP2;
+    if ((OPC!=0x0F && OP1==0)||(OPC<=0x1F && OPC>=0x10 && OP2==0)){ //reviso si es una operacion invalida
+        printf("Operacion invalida");
+        salir=0;
+    }
+    else {
+        //aca hay que avanzar el IP en 1 y leer byte a byte OP2 veces
+        OP2=OP2 << 24;
+        OP2=OP2 | lectura;
+        
+        
+        //aca hay que avanzar el IP en 1 y leer byte a byte OP1 veces
+        OP1=OP1 << 24;
+        OP1=OP1 | lectura;
+
+        //Aca ya tengo OPC, OP1 y OP2 para ejecutar
+    }
+}
+
 void ejecucion(uint32_t registros[REG],infoSegmento tablaSegmento[ENT],char memoria[MEM]){
-    uint32_t instruccion, dirFisica;
+    uint8_t instruccion, dirFisica;
     uint8_t tipoA, tipoB, codInstruccion;
     int valorA, valorB,cantByteA,cantByteB;
     registros[IP] = registros[CS];
