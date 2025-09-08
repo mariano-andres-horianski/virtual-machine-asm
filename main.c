@@ -21,11 +21,11 @@ void inicioTablaSegmento(infoSegmento tabla[],uint16_t tamanio);
 void leerEncabezado(char nombre[],uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint32_t memoria[MEM]);
 uint32_t calcDirFisica(infoSegmento tablaSegmento[ENT],uint32_t regIP,int cantBytes);
 int operando(uint8_t tipo);
-void ejecucion(uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint32_t memoria[MEM]);
+void ejecucion(uint32_t registros[REG],infoSegmento tablaSegmento[ENT],char memoria[MEM]);
 
 int main()
 {
-    uint32_t memoria[MEM];                         // memoria de 16 kib
+    char memoria[MEM];                         // memoria de 16 kib
     infoSegmento tablaSegmento[ENT];                    // tabla de segmentos sin inicializar
     uint32_t registros[REG];                            // cada pos tiene disponible 4 bytes >> con unsigned char tiene 1 byte
 
@@ -109,7 +109,7 @@ int operando(uint8_t tipo){
                 cantByte = 0;
     return cantByte;
 }
-void ejecucion(uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint32_t memoria[MEM]){
+void ejecucion(uint32_t registros[REG],infoSegmento tablaSegmento[ENT],char memoria[MEM]){
     uint32_t instruccion, dirFisica;
     uint8_t tipoA, tipoB, codInstruccion;
     int valorA, valorB,cantByteA,cantByteB;
