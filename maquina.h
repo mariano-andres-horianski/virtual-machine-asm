@@ -13,7 +13,7 @@ typedef enum {
     EAX = 10,EBX,ECX,EDX,EEX,EFX,AC,CC,
     CS = 26,DS } registro;
 typedef enum {
-    MOV = 10,ADD,SUB,MUL,DIV,CMP,SHL,SHR,SAR,AND,OR,XOR,SWAP,LDL,LDH,RND,
+    MOV = 0x10,ADD,SUB,MUL,DIV,CMP,SHL,SHR,SAR,AND,OR,XOR,SWAP,LDL,LDH,RND,
     SYS = 0, JMP, JZ, JP, JN, JNZ, JNP, JNN, NOT,
     STOP = 0x0F
 } operacion;
