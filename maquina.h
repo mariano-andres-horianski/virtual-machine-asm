@@ -27,3 +27,11 @@ void leerEncabezado(char nombre[],uint32_t registros[REG],infoSegmento tablaSegm
 uint32_t calcDirFisica(infoSegmento tablaSegmento[ENT],uint32_t regIP,int cantBytes);
 int operando(uint8_t tipo);
 void ejecucion(uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint8_t memoria[MEM]);
+//un operando
+void JMP(uint32_t OP1, uint32_t registros[]);
+void JZ(uint32_t OP1, uint32_t registros[]);
+void JP(uint32_t OP1, uint32_t registros[]);
+void JN(uint32_t OP1, uint32_t registros[]);
+void JNZ(uint32_t OP1, uint32_t registros[]);
+void JNP(uint32_t OP1, uint32_t registros[]);
+void JNN(uint32_t OP1, uint32_t registros[]);

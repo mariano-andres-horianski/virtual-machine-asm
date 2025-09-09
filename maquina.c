@@ -1,6 +1,4 @@
 #include "maquina.h"
-#include <stdlib.h>
-#include <stdio.h>
 void inicioRegistro(uint32_t reg[]){
     reg[CS] = 0x00000000;
     reg[DS] = 0x00010000;
