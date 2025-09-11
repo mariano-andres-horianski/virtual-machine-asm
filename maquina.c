@@ -15,7 +15,7 @@ void inicioTablaSegmento(infoSegmento tabla[],uint16_t tamanioCod){
 }
 void leerEncabezado(char nombre[],uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint8_t memoria[MEM]){
     FILE *arch;
-    char ident[5];    
+    char ident[6];    
     char version;
     uint16_t tamanio;
     int resultado = 0;
@@ -25,7 +25,8 @@ void leerEncabezado(char nombre[],uint32_t registros[REG],infoSegmento tablaSegm
     if(arch!=NULL){
         fseek(arch,0,0); // inicio de archivo
         if( fread(ident,sizeof(char),5,arch) == 5){
-            if (strcmp(ident,"VMX25")){ 
+            ident[5] = '\0';
+            if (strcmp(ident,"VMX25") == 0){ 
                 fread(&version,sizeof(char),1,arch);
                 if(version == 1){
                     fread(&tamanio,sizeof(uint16_t),1,arch);
@@ -67,6 +68,7 @@ void leerInstrucciones(uint8_t instruccion, uint8_t memoria[], uint32_t registro
     
     uint32_t lectura;
     uint8_t cantByteA,cantByteB;
+    uint32_t posicion;
     
     registros[OPC]=instruccion & 0x1F;
     registros[OP2]=instruccion >> 6;
@@ -82,11 +84,13 @@ void leerInstrucciones(uint8_t instruccion, uint8_t memoria[], uint32_t registro
     }
     else {
         //aca hay que avanzar el IP en 1 y leer byte a byte OP2 veces
+        posicion = memoria[registros[IP] + 1];
+
+        operandos(&lectura,registros[OP2],registros,memoria,&posicion);  /// agregar a .h ----------------------------------------?
         registros[OP2]=registros[OP2] << 24;
         registros[OP2]=registros[OP2] | lectura;
-        
-        
         //aca hay que avanzar el IP en 1 y leer byte a byte OP1 veces
+        operandos(&lectura,registros[OP1],registros,memoria,&posicion);
         registros[OP1]=registros[OP1] << 24;
         registros[OP1]=registros[OP1] | lectura;
 
@@ -99,6 +103,9 @@ void leerInstrucciones(uint8_t instruccion, uint8_t memoria[], uint32_t registro
 void ejecucion(uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint8_t memoria[MEM]){
     uint8_t instruccion;
     uint32_t dirFisica;
+    uint8_t codInstruccion;
+    uint8_t Tipo1,Tipo2;
+    uint32_t OP2,OP1;
     
     registros[IP] = registros[CS];
     dirFisica = calcDirFisica(tablaSegmento,registros[IP],1);  // 1?? ref de la cantidad de bytes de acceso
@@ -106,5 +113,62 @@ void ejecucion(uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint8_t m
         leerInstrucciones(memoria[registros[IP]], memoria, registros, &dirFisica); //la dirFisica es una posicion del vector memoria que tenemos que chequear constantemente
         //aca iria una funcion que ejecute las instrucciones en base a lo que hay en el vector registros en las posiciones OP1, OP2 y OPC
         //lo haria accediendo a posiciones de un vector de punteros a funciones donde cada una es una instruccion
+        
+        codInstruccion = memoria[registros[IP]];
+        Tipo1 = (registros[OP1] >> 30 ) & 0x3;
+        Tipo2 = (registros[OP2] >> 30 ) & 0x3;
+        OP1 = registros[OP1] & 0x00FFFFFF;
+        OP2 = registros[OP1] & 0x00FFFFFF;
+       // instrucciones[codInstruccion](Tipo1,Tipo2,OP1,OP2,registros,memoria);
     }
+}
+
+void operandos(uint32_t *lectura,uint32_t tipo,uint32_t registros[],uint8_t memoria[],uint32_t *posicion){
+    switch (tipo){
+    case 0b01: {
+        *lectura = memoria[*posicion]; 
+        *posicion += 1;
+        break;
+    }
+    case 0b10: {
+        *lectura = (memoria[*posicion] << 8)  |  memoria[*posicion + 1];
+        *posicion += 2;
+    }
+    case 0b11: {
+        *lectura = (memoria[*posicion] << 16) | (memoria[*posicion + 1] << 8) | (memoria[*posicion + 2]);
+        *posicion += 3;
+    }
+    }
+}
+void resultado(uint8_t Tipo1,uint32_t registros[],uint8_t memoria[], int resultado,infoSegmento tablaSegmentos[]){
+    uint32_t codRegistro;
+    uint32_t direFisica;
+    if( Tipo1 == 0b01){ // registro
+        codRegistro = registros[OP1] & 0x00FFFFFF;
+        registros[codRegistro] = resultado;
+    }
+    else {
+        if(Tipo1 == 0b11) { // memoria
+            direFisica = calcDirFisica(tablaSegmentos,registros[IP],1);
+            memoria[direFisica] =  (resultado >> 24) & 0x000000FF;
+            memoria[direFisica + 1] = (resultado >> 16) & 0x00FF;
+            memoria[direFisica + 2] = (resultado >> 8) & 0x0000FF;
+            memoria[direFisica + 3] = resultado & 0x000000FF;
+        }
+    }
+}
+void actualizarCC(uint32_t registros[],uint32_t resultado){
+    if(resultado < 0)
+        registros[CC] = 0x80000000;
+    else
+        if(resultado == 0)
+            registros[CC] = 0x40000000;
+        else 
+            registros[CC] = 0x0;
+}
+void ADD(uint8_t Tipo1,uint8_t Tipo2,int OP1,int OP2,uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
+    int resultado;
+    resultado = OP1 + OP2;
+    actualizarCC(registros,resultado);
+    Resultado(Tipo1,registros,memoria,resultado);
 }

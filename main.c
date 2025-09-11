@@ -8,7 +8,7 @@ int main()
 
     leerEncabezado("sample.vmx",registros,tablaSegmento,memoria);
     printf("inicio de ejecucion");
-    ejecucion(registros,tablaSegmento,memoria);
+   // ejecucion(registros,tablaSegmento,memoria);
        
     return 0;
 }
