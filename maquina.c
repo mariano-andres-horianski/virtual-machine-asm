@@ -154,10 +154,11 @@ void ResultadoOperacion(uint8_t Tipo1,uint32_t registros[],uint8_t memoria[],int
     else {
         if(Tipo1 == 0b11) { // memoria
             memoria[MAR] = calcDirFisica(tablaSegmentos,registros[IP],1);
-            memoria[memoria[MAR]] =  (resultado >> 24) & 0x000000FF;
-            memoria[memoria[MAR] + 1] = (resultado >> 16) & 0x00FF;
-            memoria[memoria[MAR] + 2] = (resultado >> 8) & 0x0000FF;
-            memoria[memoria[MAR] + 3] = resultado & 0x000000FF;
+            memoria[MBR] = resultado;
+            memoria[memoria[MAR]] =  (memoria[MBR] >> 24) & 0x000000FF;
+            memoria[memoria[MAR] + 1] = (memoria[MBR] >> 16) & 0x00FF;
+            memoria[memoria[MAR] + 2] = (memoria[MBR] >> 8) & 0x0000FF;
+            memoria[memoria[MAR] + 3] = memoria[MBR] & 0x000000FF;
         }
     }
 }
