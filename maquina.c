@@ -44,7 +44,7 @@ void leerEncabezado(char nombre[],uint32_t registros[REG],infoSegmento tablaSegm
         inicioTablaSegmento(tablaSegmento,tamanio);
     }
     else 
-        printf("ERROR: no se pudo leer el resultado");
+        printf("ERROR: no se pudo leer el resultado\n");
 
 }
 uint32_t calcDirFisica(infoSegmento tablaSegmento[ENT],uint32_t regIP,int cantBytes){
@@ -58,7 +58,7 @@ uint32_t calcDirFisica(infoSegmento tablaSegmento[ENT],uint32_t regIP,int cantBy
     if(tablaSegmento[numSegmento].base <= direcFisica && limSegmento >= limAcceso)
         return direcFisica;
     else{
-        printf("segmentation fault\n"); 
+        printf("SEGMENTATION  FAULT\n"); // detecta uno de los 3 errores que se deben tener en cuenta segun requisitos
         return 0xFFFFFFFF;
     }
 }
@@ -79,7 +79,7 @@ void leerInstrucciones(uint8_t instruccion, uint8_t memoria[], uint32_t registro
     if (registros[OP1]==0 && registros[OP2]!=0)
         registros[OP1]=registros[OP2];
     if ((OPC!=0x0F && registros[OP1]==0)||(OPC<=0x1F && OPC>=0x10 && registros[OP2]==0)){ //reviso si es una operacion invalida
-        printf("Operacion invalida");
+        printf("ERROR: operacion invalida\n");
         *dirFisica = 0xFFFFFFFF;
     }
     else {
@@ -140,7 +140,7 @@ void operandos(uint32_t *lectura,uint32_t tipo,uint32_t registros[],uint8_t memo
     }
     }
 }
-void resultado(uint8_t Tipo1,uint32_t registros[],uint8_t memoria[], int resultado,infoSegmento tablaSegmentos[]){
+void ResultadoOperacion(uint8_t Tipo1,uint32_t registros[],uint8_t memoria[],int resultado,infoSegmento tablaSegmentos[]){
     uint32_t codRegistro;
     uint32_t direFisica;
     if( Tipo1 == 0b01){ // registro
@@ -166,9 +166,109 @@ void actualizarCC(uint32_t registros[],uint32_t resultado){
         else 
             registros[CC] = 0x0;
 }
-void ADD(uint8_t Tipo1,uint8_t Tipo2,int OP1,int OP2,uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
+void funcion_ADD(uint8_t Tipo1,uint8_t Tipo2,int OP1,int OP2,uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
     int resultado;
     resultado = OP1 + OP2;
+    actualizarCC(registros,resultado); // ----------------------se tiene en cuenta el orden de las funciones actCC y luego resultado??
+    ResultadoOperacion(Tipo1,registros,memoria,resultado,tablaSegmentos);
+}
+void funcion_SUB(uint8_t Tipo1,uint8_t Tipo2,int OP1,int OP2,uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
+    int resultado;
+    resultado = OP1 - OP2;
     actualizarCC(registros,resultado);
-    Resultado(Tipo1,registros,memoria,resultado);
+    ResultadoOperacion(Tipo1,registros,memoria,resultado,tablaSegmentos);
+}
+void funcion_MUL(uint8_t Tipo1,uint8_t Tipo2,int OP1,int OP2,uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
+    int resultado;
+    resultado = OP1 * OP2;
+    actualizarCC(registros,resultado); 
+    ResultadoOperacion(Tipo1,registros,memoria,resultado,tablaSegmentos); 
+}
+void funcion_DIV(uint8_t Tipo1,uint8_t Tipo2,int OP1,int OP2,uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
+    int resultado;
+    if(OP2 != 0){
+        resultado = OP1 / OP2;
+        actualizarCC(registros,resultado);
+        registros[AC] = OP1 % OP2;
+        ResultadoOperacion(Tipo1,registros,memoria,resultado,tablaSegmentos);
+    }
+    else 
+        printf("ERROR: division por cero\n"); // detecta uno de los 3 errores que se deben tener en cuenta segun requisitos
+}
+void funcion_CMP(uint8_t Tipo1,uint8_t Tipo2,int OP1,int OP2,uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
+    int resultado;
+    resultado = OP1 - OP2;
+    actualizarCC(registros,resultado);
+}
+void funcion_SHL(uint8_t Tipo1,uint8_t Tipo2,int OP1,int OP2,uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
+    int resultado;
+    resultado = (OP1 << OP2) & ~(0x1 << OP2);  // ???
+    actualizarCC(registros,resultado);
+    ResultadoOperacion(Tipo1,registros,memoria,resultado,tablaSegmentos);
+}
+void funcion_SHR(uint8_t Tipo1,uint8_t Tipo2,int OP1,int OP2,uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
+    int resultado;
+    resultado = (OP1 >> OP2) & ~(0x1 >> OP2);  // ???
+    actualizarCC(registros,resultado);
+    ResultadoOperacion(Tipo1,registros,memoria,resultado,tablaSegmentos);
+}
+void funcion_SAR(uint8_t Tipo1,uint8_t Tipo2,int OP1,int OP2,uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
+    int resultado;
+    if(OP1 & 0x80000000 == 1) // si es neg, el resultado tambien lo sera: agrego unos
+        resultado = OP1 >> OP2;
+    else 
+        resultado = (OP1 >> OP2) & ~(0x1 >> OP2); // si es positivo: agrego ceros
+    actualizarCC(registros,resultado);
+    ResultadoOperacion(Tipo1,registros,memoria,resultado,tablaSegmentos);
+}
+void funcion_AND(uint8_t Tipo1,uint8_t Tipo2,int OP1,int OP2,uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
+    int resultado;
+    resultado = OP1 & OP2;
+    actualizarCC(registros,resultado);
+    ResultadoOperacion(Tipo1,registros,memoria,resultado,tablaSegmentos);
+}
+void funcion_OR(uint8_t Tipo1,uint8_t Tipo2,int OP1,int OP2,uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
+    int resultado;
+    resultado = OP1 | OP2;
+    actualizarCC(registros,resultado);
+    ResultadoOperacion(Tipo1,registros,memoria,resultado,tablaSegmentos);
+}
+void funcion_XOR(uint8_t Tipo1,uint8_t Tipo2,int OP1,int OP2,uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
+    int resultado;
+    resultado = OP1 ^ OP2;
+    actualizarCC(registros,resultado);
+    ResultadoOperacion(Tipo1,registros,memoria,resultado,tablaSegmentos);
+}
+void funcion_SWAP(uint8_t Tipo1,uint8_t Tipo2,int OP1,int OP2,uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
+    ResultadoOperacion(Tipo1,registros,memoria,OP2,tablaSegmentos);
+    ResultadoOperacion(Tipo2,registros,memoria,OP1,tablaSegmentos);
+}
+void funcion_LDL(uint8_t Tipo1,uint8_t Tipo2,int OP1,int OP2,uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
+    int resultado;
+    resultado = (OP2 & 0x0000FFFF) | (OP1 & 0xFFFF0000);
+    ResultadoOperacion(Tipo1,registros,memoria,resultado,tablaSegmentos);
+}
+void funcion_LDH(uint8_t Tipo1,uint8_t Tipo2,int OP1,int OP2,uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
+    int resultado;
+    resultado = ((OP2 << 16) & 0xFFFF0000) | (OP1 & 0x0000FFFF);
+    ResultadoOperacion(Tipo1,registros,memoria,resultado,tablaSegmentos);
+}
+void funcion_NOT(uint8_t Tipo1,uint8_t Tipo2,int OP1,int OP2,uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
+    int resultado;
+    resultado = ~OP1;
+    ResultadoOperacion(Tipo1,registros,memoria,resultado,tablaSegmentos);
+}
+void funcion_STOP(uint8_t Tipo1,uint8_t Tipo2,int OP1,int OP2,uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
+    registros[IP] = 0xFFFFFFFF;
+}
+/*
+.
+.
+- AGREGAR FUNCION MOV, RND Y SYS
+- SE DETECTARON LOS 3 TIPOS DE ERRORES Y SE INFORMO POR PANTALLA
+.
+.
+*/
+void funcion_NO_ACCESIBLE(uint8_t Tipo1,uint8_t Tipo2,int OP1,int OP2,uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
+    printf("INSTRUCCION INVALIDA: codigo de operacion de la instruccion a ejecutar no existe\n");  // detecta uno de los 3 errores que se deben tener en cuenta segun requisitos
 }
