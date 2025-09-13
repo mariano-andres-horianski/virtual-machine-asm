@@ -62,13 +62,27 @@ uint32_t calcDirFisica(infoSegmento tablaSegmento[ENT],uint32_t regIP,int cantBy
         return 0xFFFFFFFF;
     }
 }
+void operandos(uint32_t *lectura,uint32_t tipo,uint32_t registros[],uint8_t memoria[]){
+    //lectura del valor de los operandos
+    switch (tipo){
+    case 0b01: { //registro
+        *lectura = memoria[MAR]; 
+        break;
+    }
+    case 0b10: { //inmediato
+        *lectura = (memoria[MAR] << 8)  |  memoria[MAR + 1];
+    }
+    case 0b11: { //direccion de memoria
+        *lectura = (memoria[MAR] << 16) | (memoria[MAR + 1] << 8) | (memoria[MAR + 2]);
+    }
+    }
+}
 
 void leerInstrucciones(uint8_t instruccion, uint8_t memoria[], uint32_t registros[REG]){
     //usar los OP para calcular los bytes que necesitamos leer y poner en lectura
     
     uint32_t lectura;
     uint8_t cantByteA,cantByteB;
-    uint32_t posicion;
     
     registros[OPC]=instruccion & 0x1F;
     registros[OP2]=instruccion >> 6;
@@ -84,13 +98,16 @@ void leerInstrucciones(uint8_t instruccion, uint8_t memoria[], uint32_t registro
     }
     else {
         //aca hay que avanzar el IP en 1 y leer byte a byte OP2 veces
-        posicion = memoria[registros[IP] + 1];
+        registros[IP] = registros[IP] + 1;
 
-        operandos(&lectura,registros[OP2],registros,memoria,&posicion);  /// agregar a .h ----------------------------------------?
+        registros[MAR] = registros[IP];
+        
+        
+        operandos(&lectura,registros[OP2],registros,memoria);  /// agregar a .h ----------------------------------------?
         registros[OP2]=registros[OP2] << 24;
         registros[OP2]=registros[OP2] | lectura;
         //aca hay que avanzar el IP en 1 y leer byte a byte OP1 veces
-        operandos(&lectura,registros[OP1],registros,memoria,&posicion);
+        operandos(&lectura,registros[OP1],registros,memoria);
         registros[OP1]=registros[OP1] << 24;
         registros[OP1]=registros[OP1] | lectura;
 
@@ -112,8 +129,8 @@ void ejecucion(uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint8_t m
         leerInstrucciones(memoria[registros[IP]], memoria, registros); //la dirFisica es una posicion del vector memoria que tenemos que chequear constantemente
         //aca iria una funcion que ejecute las instrucciones en base a lo que hay en el vector registros en las posiciones OP1, OP2 y OPC
         //lo haria accediendo a posiciones de un vector de punteros a funciones donde cada una es una instruccion
-        
-        codInstruccion = memoria[registros[IP]];
+        registros[MBR] = memoria[MAR];
+        codInstruccion = registros[MBR];
         Tipo1 = (registros[OP1] >> 30 ) & 0x3;
         Tipo2 = (registros[OP2] >> 30 ) & 0x3;
         operando1 = registros[OP1] & 0x00FFFFFF;
@@ -128,23 +145,7 @@ uint32_t get(uint8_t tipo_operando, uint32_t operando,uint32_t registros[], uint
         return operando;
     else return memoria[operando];
 }
-void operandos(uint32_t *lectura,uint32_t tipo,uint32_t registros[],uint8_t memoria[],uint32_t *posicion){
-    switch (tipo){
-    case 0b01: {
-        *lectura = memoria[*posicion]; 
-        *posicion += 1;
-        break;
-    }
-    case 0b10: {
-        *lectura = (memoria[*posicion] << 8)  |  memoria[*posicion + 1];
-        *posicion += 2;
-    }
-    case 0b11: {
-        *lectura = (memoria[*posicion] << 16) | (memoria[*posicion + 1] << 8) | (memoria[*posicion + 2]);
-        *posicion += 3;
-    }
-    }
-}
+
 void ResultadoOperacion(uint8_t Tipo1,uint32_t registros[],uint8_t memoria[],int resultado,infoSegmento tablaSegmentos[]){
     uint32_t codRegistro;
     if(Tipo1 == 0b01){ // registro
@@ -154,11 +155,11 @@ void ResultadoOperacion(uint8_t Tipo1,uint32_t registros[],uint8_t memoria[],int
     else {
         if(Tipo1 == 0b11) { // memoria
             memoria[MAR] = calcDirFisica(tablaSegmentos,registros[IP],1);
-            memoria[MBR] = resultado;
-            memoria[memoria[MAR]] =  (memoria[MBR] >> 24) & 0x000000FF;
-            memoria[memoria[MAR] + 1] = (memoria[MBR] >> 16) & 0x00FF;
-            memoria[memoria[MAR] + 2] = (memoria[MBR] >> 8) & 0x0000FF;
-            memoria[memoria[MAR] + 3] = memoria[MBR] & 0x000000FF;
+            registros[MBR] = resultado;
+            memoria[memoria[MAR]] =  (registros[MBR] >> 24) & 0x000000FF;
+            memoria[memoria[MAR] + 1] = (registros[MBR] >> 16) & 0x00FF;
+            memoria[memoria[MAR] + 2] = (registros[MBR] >> 8) & 0x0000FF;
+            memoria[memoria[MAR] + 3] = registros[MBR] & 0x000000FF;
         }
     }
 }
