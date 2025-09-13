@@ -25,7 +25,7 @@ void ejecucion(uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint8_t m
 uint32_t get(uint8_t tipo_operando, uint32_t operando,uint32_t registros[], uint8_t memoria[]);
 
 void leerInstrucciones(uint8_t instruccion, uint8_t memoria[], uint32_t registros[REG]);
-void operandos(uint32_t *lectura,uint32_t tipo,uint32_t registros[],uint8_t memoria[],uint32_t *posicion);
+void operandos(uint32_t *lectura,uint32_t tipo,uint32_t registros[],uint8_t memoria[]);
 void ResultadoOperacion(uint8_t Tipo1,uint32_t registros[],uint8_t memoria[], int resultado,infoSegmento tablaSegmentos[]);
 void actualizarCC(uint32_t registros[],uint32_t resultado);
 //un parametro
