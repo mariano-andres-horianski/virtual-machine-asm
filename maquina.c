@@ -48,7 +48,7 @@ void leerEncabezado(char nombre[],uint32_t registros[REG],infoSegmento tablaSegm
 
 }
 void calcDirFisica(infoSegmento tablaSegmento[ENT],uint32_t registros[],int cantBytes){
-    
+    //calcular direccion fisica apuntada por el IP (que almacena una lógica)
     uint32_t numSegmento = (registros[IP] >> 16) & 0x0000FFFF;
     uint32_t desplaz = registros[IP] & 0x0000FFFF; // obtengo los 2 bytes menos significativos
  
@@ -58,7 +58,7 @@ void calcDirFisica(infoSegmento tablaSegmento[ENT],uint32_t registros[],int cant
         registros[LAR] = tablaSegmento[numSegmento].base + desplaz;
     else{
         printf("SEGMENTATION  FAULT\n"); // detecta uno de los 3 errores que se deben tener en cuenta segun requisitos
-        registros[LAR] = 0xFFFFFFFF;
+        registros[IP] = 0xFFFFFFFF;
     }
 }
 void operandos(uint32_t *lectura,uint32_t tipo,uint32_t registros[],uint8_t memoria[]){
@@ -77,7 +77,8 @@ void operandos(uint32_t *lectura,uint32_t tipo,uint32_t registros[],uint8_t memo
     }
 }
 
-void leerInstrucciones(uint8_t instruccion, uint8_t memoria[], uint32_t registros[REG]){
+void leerInstrucciones(uint8_t instruccion, uint8_t memoria[], uint32_t registros[REG], infoSegmento tablaSegmento[],
+        void (*un_operando[16])(uint32_t registros[]), void (*dos_operando[16])(uint32_t registros[], uint8_t memoria[])){
     //usar los OP para calcular los bytes que necesitamos leer y poner en lectura
     
     uint32_t lectura;
@@ -89,34 +90,44 @@ void leerInstrucciones(uint8_t instruccion, uint8_t memoria[], uint32_t registro
     registros[OP1]=(instruccion >> 4) & 0x03;
     cantByteA = registros[OP1];
 
-    if (registros[OP1]==0 && registros[OP2]!=0)
+    if (registros[OP1]==0 && registros[OP2]!=0){
         registros[OP1]=registros[OP2];
+        cantByteA = cantByteB;
+        cantByteB = 0;
+    }
     if ((OPC!=0x0F && registros[OP1]==0)||(OPC<=0x1F && OPC>=0x10 && registros[OP2]==0)){ //reviso si es una operacion invalida
         printf("ERROR: operacion invalida\n");
-        registros[LAR] = 0xFFFFFFFF;
+        registros[IP] = 0xFFFFFFFF;
     }
     else {
         //aca hay que avanzar el IP en 1 y leer byte a byte OP2 veces
         registros[IP] = registros[IP] + 1;
 
-        registros[MAR] = registros[IP];
-        
-        
+        calcDirFisica(tablaSegmento, registros, cantByteA);
+        registros[MAR] = registros[LAR];
         operandos(&lectura,registros[OP2],registros,memoria);  /// agregar a .h ----------------------------------------?
         registros[OP2]=registros[OP2] << 24;
         registros[OP2]=registros[OP2] | lectura;
-        //aca hay que avanzar el IP en 1 y leer byte a byte OP1 veces
+        registros[IP] = registros[IP] + cantByteA;
+
+        calcDirFisica(tablaSegmento, registros, cantByteB);
+        registros[MAR] = registros[LAR];
         operandos(&lectura,registros[OP1],registros,memoria);
         registros[OP1]=registros[OP1] << 24;
         registros[OP1]=registros[OP1] | lectura;
+        registros[IP] = registros[IP] + cantByteB;
 
         //Aca ya tengo OPC, OP1 y OP2 para ejecutar
-
+        if (cantByteB == 0){
+            un_operando[registros[OPC]](registros);
+        }
+        else{
+            dos_operando[registros[OPC]](registros,memoria,tablaSegmento);
+        }
     }
-    registros[IP] = registros[IP] + cantByteA + cantByteB; // IP apunta a nueva direccion en memoria
 }
 
-void ejecucion(uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint8_t memoria[MEM]){
+void ejecucion(uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint8_t memoria[MEM],void (*un_operando[16])(uint32_t registros[]), void (*dos_operando[16])(uint32_t registros[], uint8_t memoria[])){
     //falta evaluar la cantidad de argumentos para saber cual de los dos vectores de punteros a funciones utilizar
     uint8_t instruccion;
     uint8_t codInstruccion;
@@ -126,10 +137,9 @@ void ejecucion(uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint8_t m
     registros[IP] = registros[CS];
     calcDirFisica(tablaSegmento,registros,1);  // 1?? ref de la cantidad de bytes de acceso
     registros[MAR] = registros[LAR]; //esto es solo posible porque en esta parte del cuatrimestre el CS empieza en la posicion 0
-    while (registros[LAR] != 0xFFFFFFFF){
-        leerInstrucciones(memoria[registros[IP]], memoria, registros); //la dirFisica es una posicion del vector memoria que tenemos que chequear constantemente
-        //aca iria una funcion que ejecute las instrucciones en base a lo que hay en el vector registros en las posiciones OP1, OP2 y OPC
-        //lo haria accediendo a posiciones de un vector de punteros a funciones donde cada una es una instruccion
+    leerInstrucciones(memoria[registros[IP]], memoria, registros, tablaSegmento,un_operando,dos_operando);
+    while (registros[IP] != 0xFFFFFFFF){
+        registros[MAR] = registros[LAR];
         registros[MBR] = memoria[registros[MAR]];
         codInstruccion = registros[MBR];
         Tipo1 = (registros[OP1] >> 30 ) & 0x3;
@@ -137,6 +147,7 @@ void ejecucion(uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint8_t m
         operando1 = registros[OP1] & 0x00FFFFFF;
         operando2 = registros[OP2] & 0x00FFFFFF;
        // instrucciones[codInstruccion](Tipo1,Tipo2,OP1,OP2,registros,memoria);
+       leerInstrucciones(memoria[registros[IP]], memoria, registros, tablaSegmento,un_operando,dos_operando);
     }
 }
 uint32_t get(uint32_t operando,uint32_t registros[], uint8_t memoria[]){

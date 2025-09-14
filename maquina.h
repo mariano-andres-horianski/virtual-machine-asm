@@ -30,6 +30,7 @@ void operandos(uint32_t *lectura,uint32_t tipo,uint32_t registros[],uint8_t memo
 void ResultadoOperacion(uint8_t Tipo1,uint32_t registros[],uint8_t memoria[], int resultado,infoSegmento tablaSegmentos[]);
 void actualizarCC(uint32_t registros[],uint32_t resultado);
 //un parametro
+void SYS(uint32_t registros[]);
 void JMP(uint32_t registros[]);
 void JZ(uint32_t registros[]);
 void JP(uint32_t registros[]);
@@ -39,7 +40,7 @@ void JNP(uint32_t registros[]);
 void JNN(uint32_t registros[]);
 //dos parametros
 void ADD(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]);
-void MOV(uint32_t registros[], uint8_t memoria[], uint32_t operando1, uint32_t operando2);
+void MOV(uint32_t registros[], uint8_t memoria[], infoSegmento tablaSegmentos[]);
 void SUB(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]);
 void MUL(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]);
 void DIV(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]);

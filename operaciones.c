@@ -56,8 +56,10 @@ void DIV(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
         registros[AC] = get(registros[OP1],registros,memoria) % get(registros[OP2],registros,memoria);
         ResultadoOperacion(registros,memoria,resultado,tablaSegmentos);
     }
-    else 
+    else{ 
         printf("ERROR: division por cero\n"); // detecta uno de los 3 errores que se deben tener en cuenta segun requisitos
+        STOP(registros,memoria,tablaSegmentos);
+    }
 }
 void CMP(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
     int resultado;
@@ -125,8 +127,8 @@ void NOT(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
 void STOP(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
     registros[IP] = 0xFFFFFFFF;
 }
-void MOV(uint32_t registros[], uint8_t memoria[], uint32_t operando1, uint32_t operando2){
-    set(registros,memoria,operando1,get(operando2, registros, memoria));
+void MOV(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
+    set(registros,memoria,registros[OP1],get(registros[OP2], registros, memoria));
 }
 /*
 .
