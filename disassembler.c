@@ -44,8 +44,8 @@ static void mostrarHexa(uint8_t instruccion[], uint8_t inicio, uint8_t fin) {
 void disassembler(uint8_t memoria[], infoSegmento tablaSegmentos[], uint32_t tamMemoria) {
     uint32_t dirFisica, operando1, operando2, PC = tablaSegmentos[CS].base;
     uint8_t instruccion[6],i,N,tipo1,tipo2,ini1;
-
-    while (PC < tablaSegmentos[CS].base + tablaSegmentos[CS].limite) {
+    
+    while (PC < tablaSegmentos[CS].base + tablaSegmentos[CS].tamanio) {
         dirFisica = PC;
         i=0;
         N=0;

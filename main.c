@@ -9,7 +9,7 @@ int main()
     SYS, JMP, JZ, JP, JN, JNZ, JNP, JNN, NOT,
     NO_ACCESIBLE, NO_ACCESIBLE, NO_ACCESIBLE, NO_ACCESIBLE, NO_ACCESIBLE, NO_ACCESIBLE,
     STOP, MOV, ADD, SUB, MUL, DIV, CMP, SHL, SHR, SAR, AND, OR, XOR, SWAP, LDL, LDH, RND
-};
+    };
     leerEncabezado("sample.vmx",registros,tablaSegmento,memoria);
     printf("inicio de ejecucion");
     ejecucion(registros,tablaSegmento,memoria);
