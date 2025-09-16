@@ -47,13 +47,30 @@ void leerEncabezado(char nombre[],uint32_t registros[REG],infoSegmento tablaSegm
         printf("ERROR: no se pudo leer el resultado\n");
 
 }
+void operacion_memoria(uint32_t registros[], uint8_t memoria[], uint32_t direccion, uint32_t valor, uint8_t tipo_operacion){
+    //acá se ejecutan las escrituras o lecturas del DS
+    uint8_t cantBytes = (registros[MAR] >> 16) & 0x000000FF;
+    registros[LAR] = direccion;
+    registros[MBR] = valor;
+    registros[MAR] = registros[LAR];
+
+
+    if (tipo_operacion == ESCRITURA){
+        for(int i = 0; i < cantBytes; i++){
+            memoria[registros[MAR + i] & 0x0000FFFF] = registros[MBR];
+        }
+    }
+    else{
+        registros[MBR] = memoria[registros[MAR] & 0x0000FFFF];
+    }
+}
 void calcDirFisica(infoSegmento tablaSegmento[ENT],uint32_t registros[],int cantBytes){
     //calcular direccion fisica apuntada por el IP (que almacena una lógica)
     uint32_t numSegmento = (registros[IP] >> 16) & 0x0000FFFF;
     uint32_t desplaz = registros[IP] & 0x0000FFFF; // obtengo los 2 bytes menos significativos
  
     uint32_t limSegmento = tablaSegmento[numSegmento].base + tablaSegmento[numSegmento].tamanio;
-    uint32_t limAcceso = registros[LAR] + cantBytes ;
+    uint32_t limAcceso = registros[LAR] + cantBytes;
     if(tablaSegmento[numSegmento].base <= registros[LAR] && limSegmento >= limAcceso)
         registros[LAR] = tablaSegmento[numSegmento].base + desplaz;
     else{
@@ -61,6 +78,7 @@ void calcDirFisica(infoSegmento tablaSegmento[ENT],uint32_t registros[],int cant
         registros[IP] = 0xFFFFFFFF;
     }
 }
+
 void operandos(uint32_t *lectura,uint32_t tipo,uint32_t registros[],uint8_t memoria[]){
     //lectura del valor de los operandos
     switch (tipo){
@@ -98,6 +116,7 @@ void leerInstrucciones(uint8_t instruccion, uint8_t memoria[], uint32_t registro
     if ((OPC!=0x0F && registros[OP1]==0)||(OPC<=0x1F && OPC>=0x10 && registros[OP2]==0)){ //reviso si es una operacion invalida
         printf("ERROR: operacion invalida\n");
         registros[IP] = 0xFFFFFFFF;
+        registros[LAR] = registros[IP];
     }
     else {
         //aca hay que avanzar el IP en 1 y leer byte a byte OP2 veces
@@ -151,20 +170,29 @@ void ejecucion(uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint8_t m
     }
 }
 uint32_t get(uint32_t operando,uint32_t registros[], uint8_t memoria[]){
-    int tipo_operando = (operando >> 24);
+    int tipo_operando = (operando >> 24) & 0x00000003;
     if (tipo_operando == 0x01)
         return registros[operando];
     else if (tipo_operando == 0x02)
         return operando;
-    else return memoria[operando];
+    else {
+        //el operando es direccion de memoria
+        registros[MAR] = (tipo_operando << 16) & 0xFFFF0000;
+        operacion_memoria(registros, memoria, operando, 0, LECTURA); //desde el get() solo leo la posición de memoria -> solo leo 1 byte y por eso el 1
+        return registros[MBR];
+    }
 }
-void set(uint32_t registros[], uint8_t memoria[], uint32_t operando1, uint32_t operando2){ //operando 2 será inmediato siempre en esta función, pues se la llamará con el argumento get()
-    int tipo_operando = (operando1 >> 24);
+void set(uint32_t registros[], uint8_t memoria[], uint32_t operando1, uint16_t operando2){
+    //operando 2 será inmediato siempre en esta función, pues se la llamará con el argumento get()
+    int tipo_operando = (operando1 >> 24) & 0x00000003;
 
     if (tipo_operando == 1)
         registros[operando1] = operando2; 
     else{
-        memoria[registros[MAR]] = operando2; 
+        registros[MBR] = operando2;
+        
+        registros[MAR] = (tipo_operando << 16) & 0xFFFF0000;
+        operacion_memoria(registros, memoria, operando1, operando2, ESCRITURA);
     }
 }
 void ResultadoOperacion(uint32_t registros[],uint8_t memoria[],int resultado,infoSegmento tablaSegmentos[]){

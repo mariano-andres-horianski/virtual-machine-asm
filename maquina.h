@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #define MEM 16384
+#define ESCRITURA 1
+#define LECTURA 2
 #define ENT 8
 #define REG 32
 
@@ -21,13 +23,14 @@ void inicioRegistro(uint32_t reg[]);
 void inicioTablaSegmento(infoSegmento tabla[],uint16_t tamanio);
 void leerEncabezado(char nombre[],uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint8_t memoria[MEM]);
 void calcDirFisica(infoSegmento tablaSegmento[ENT],uint32_t regIP,int cantBytes);
+void operacion_memoria(uint32_t registros[], uint8_t memoria[], uint32_t direccion, uint32_t valor, uint8_t tipo_operacion);
 void ejecucion(uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint8_t memoria[MEM]);
-void set(uint32_t registros[], uint8_t memoria[], uint32_t operando1, uint32_t operando2);
+void set(uint32_t registros[], uint8_t memoria[], uint32_t operando1, uint16_t operando2);
 uint32_t get(uint32_t operando,uint32_t registros[], uint8_t memoria[]);
 
 void leerInstrucciones(uint8_t instruccion, uint8_t memoria[], uint32_t registros[REG]);
 void operandos(uint32_t *lectura,uint32_t tipo,uint32_t registros[],uint8_t memoria[]);
-void ResultadoOperacion(uint8_t Tipo1,uint32_t registros[],uint8_t memoria[], int resultado,infoSegmento tablaSegmentos[]);
+void ResultadoOperacion(uint32_t registros[],uint8_t memoria[], int resultado,infoSegmento tablaSegmentos[]);
 void actualizarCC(uint32_t registros[],uint32_t resultado);
 //un parametro
 void SYS(uint32_t registros[]);
