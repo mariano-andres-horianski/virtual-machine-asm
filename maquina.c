@@ -65,7 +65,7 @@ void operacion_memoria(uint32_t registros[], uint8_t memoria[], uint32_t direcci
     }
 }
 void calcDirFisica(infoSegmento tablaSegmento[ENT],uint32_t registros[],int cantBytes){
-    //calcular direccion fisica apuntada por el IP (que almacena una lógica)
+    
     uint32_t numSegmento = (registros[IP] >> 16) & 0x0000FFFF;
     uint32_t desplaz = registros[IP] & 0x0000FFFF; // obtengo los 2 bytes menos significativos
  
@@ -177,7 +177,7 @@ uint32_t get(uint32_t operando,uint32_t registros[], uint8_t memoria[]){
         return operando;
     else {
         //el operando es direccion de memoria
-        registros[MAR] = (tipo_operando << 16) & 0xFFFF0000;
+        registros[MAR] = (tipo_operando << 2) & 0xFFFF0000;
         operacion_memoria(registros, memoria, operando, 0, LECTURA); //desde el get() solo leo la posición de memoria -> solo leo 1 byte y por eso el 1
         return registros[MBR];
     }
