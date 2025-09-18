@@ -15,6 +15,11 @@ void SYS(uint32_t registros[],uint8_t memoria[]){
         operacion_memoria(registros,memoria,registros[EDX], valor, ESCRITURA, cantBytes);
     }
 }
+void RND(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
+    srand(time(NULL));
+
+    set(registros,memoria,registros[OP1], rand() % (get(registros[OP2], registros, memoria) + 1));
+}
 void JMP(uint32_t registros[]){
     registros[IP] = registros[OP1];
 }
@@ -147,7 +152,6 @@ void MOV(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
 /*
 .
 .
-- AGREGAR FUNCION MOV, RND Y SYS
 - SE DETECTARON LOS 3 TIPOS DE ERRORES Y SE INFORMO POR PANTALLA
 .
 .

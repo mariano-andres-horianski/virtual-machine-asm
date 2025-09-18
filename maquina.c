@@ -194,6 +194,7 @@ uint32_t get(uint32_t operando,uint32_t registros[], uint8_t memoria[]){
 }
 void set(uint32_t registros[], uint8_t memoria[], uint32_t operando1, uint16_t operando2){
     //operando 2 será inmediato siempre en esta función, pues se la llamará con el argumento get()
+    //no necesito el argumento operando1, corregir
     int tipo_operando = (operando1 >> 24) & 0x00000003;
 
     if (tipo_operando == 1)
