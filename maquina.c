@@ -62,7 +62,7 @@ void operacion_memoria(uint32_t registros[], uint8_t memoria[], uint32_t direcci
         }
     }
     else{
-        
+        //se llama acá con 0 en el argumento 'valor' por lo tanto el MBR tiene 0
         for(int i = 0; i < cantBytes; i++){
             registros[MBR] = registros[MBR] | (memoria[registros[MAR] & 0x0000FFFF]) << (24-8*i);
         }
