@@ -49,7 +49,7 @@ void leerEncabezado(char nombre[],uint32_t registros[REG],infoSegmento tablaSegm
 }
 void operacion_memoria(uint32_t registros[], uint8_t memoria[], uint32_t direccion, uint32_t valor, uint8_t tipo_operacion, uint8_t cantBytes){
     //acá se ejecutan las escrituras o lecturas del DS
-    
+    //falta añadir codigo de segmento
     registros[LAR] = direccion;
     registros[MBR] = valor;
     registros[MAR] = registros[LAR];
@@ -186,7 +186,7 @@ uint32_t get(uint32_t operando,uint32_t registros[], uint8_t memoria[]){
             operacion_memoria(registros, memoria, operando, 0, LECTURA, 1);
         else{
             direccion = registros[cod_reg] + registros[DS];
-            operacion_memoria(registros, memoria, operando, 0, LECTURA, ); //desde el get() solo leo la posición de memoria -> solo leo 1 byte y por eso el 1
+            operacion_memoria(registros, memoria, direccion, 0, LECTURA, 1); //desde el get() solo leo la posición de memoria -> solo leo 1 byte y por eso el 1
         }
 
         return registros[MBR];
@@ -199,10 +199,7 @@ void set(uint32_t registros[], uint8_t memoria[], uint32_t operando1, uint16_t o
     if (tipo_operando == 1)
         registros[operando1] = operando2; 
     else{
-        registros[MBR] = operando2;
-        
-        registros[MAR] = (tipo_operando << 16) & 0xFFFF0000;
-        operacion_memoria(registros, memoria, operando1, operando2, ESCRITURA);
+        operacion_memoria(registros, memoria, operando1, operando2, ESCRITURA, 1);
     }
 }
 void ResultadoOperacion(uint32_t registros[],uint8_t memoria[],int resultado,infoSegmento tablaSegmentos[]){
