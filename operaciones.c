@@ -1,6 +1,20 @@
 #include "maquina.h"
 
-
+void SYS(uint32_t registros[],uint8_t memoria[]){
+    //falta leer eax para determinar el formato de lectura
+    uint16_t cantBytes = (registros[ECX] >> 16) & 0x000000FF;
+    uint16_t cantCeldas = (registros[ECX]) & 0x000000FF;
+    uint8_t modo_lectura = registros[EAX];
+    int valor;
+    if(registros[OP1] == 0x1){ //lectura
+        //lectura, permite almacenar los datos leidos desde el teclado a partir de la posicion de memoria apuntada por EDX.
+        operacion_memoria(registros,memoria,registros[EDX], 0, LECTURA, cantBytes);
+    }
+    else{ //escritura
+        scanf("%d", &valor);
+        operacion_memoria(registros,memoria,registros[EDX], valor, ESCRITURA, cantBytes);
+    }
+}
 void JMP(uint32_t registros[]){
     registros[IP] = registros[OP1];
 }

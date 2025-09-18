@@ -23,7 +23,7 @@ void inicioRegistro(uint32_t reg[]);
 void inicioTablaSegmento(infoSegmento tabla[],uint16_t tamanio);
 void leerEncabezado(char nombre[],uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint8_t memoria[MEM]);
 void calcDirFisica(infoSegmento tablaSegmento[ENT],uint32_t regIP,int cantBytes);
-void operacion_memoria(uint32_t registros[], uint8_t memoria[], uint32_t direccion, uint32_t valor, uint8_t tipo_operacion);
+void operacion_memoria(uint32_t registros[], uint8_t memoria[], uint32_t direccion, uint32_t valor, uint8_t tipo_operacion, uint8_t cantBytes);
 void ejecucion(uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint8_t memoria[MEM]);
 void set(uint32_t registros[], uint8_t memoria[], uint32_t operando1, uint16_t operando2);
 uint32_t get(uint32_t operando,uint32_t registros[], uint8_t memoria[]);
@@ -33,7 +33,8 @@ void operandos(uint32_t *lectura,uint32_t tipo,uint32_t registros[],uint8_t memo
 void ResultadoOperacion(uint32_t registros[],uint8_t memoria[], int resultado,infoSegmento tablaSegmentos[]);
 void actualizarCC(uint32_t registros[],uint32_t resultado);
 //un parametro
-void SYS(uint32_t registros[]);
+
+void SYS(uint32_t registros[],uint8_t memoria[]);
 void JMP(uint32_t registros[]);
 void JZ(uint32_t registros[]);
 void JP(uint32_t registros[]);
