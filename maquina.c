@@ -13,9 +13,6 @@ void inicioTablaSegmento(infoSegmento tabla[],uint16_t tamanioCod){
     tabla[1].base = tamanioCod;
     tabla[1].tamanio = MEM - tamanioCod;
 }
-void (*instrucciones[32])(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]) = 
-{SYS,JMP,JZ,JP,JN,JNZ,JNP,JNN,NOT,NO_ACCESIBLE,NO_ACCESIBLE,NO_ACCESIBLE,NO_ACCESIBLE,NO_ACCESIBLE,STOP,MOV,ADD,SUB,MUL,DIV,CMP,SHL,SHR,SAR,AND,OR,XOR,SWAP,LDL,LDH,RND};
-    
 void leerEncabezado(char nombre[],uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint8_t memoria[MEM]){
     FILE *arch;
     char ident[6];    
@@ -57,17 +54,17 @@ void operacion_memoria(uint32_t registros[], uint8_t memoria[], uint32_t direcci
     registros[MBR] = valor;
     calcDirFisica(tablasegmento,registros,cantBytes);
     registros[MAR] = registros[MAR] | (cantBytes << 16);
-
+    int i;
 
     if (tipo_operacion == ESCRITURA){
         cantBytes = (registros[MAR] >> 16) & 0x000000FF;
-        for (int i = 0; i < cantBytes; i++) {
+        for (i = 0; i < cantBytes; i++) {
             memoria[(registros[MAR] & 0x0000FFFF) + i] = (registros[MBR] >> (8 * (cantBytes - 1 - i))) & 0x000000FF;   
         }
     }
     else{
         //se llama acá con 0 en el argumento 'valor' por lo tanto el MBR tiene 0
-        for(int i = 0; i < cantBytes; i++){
+        for(i = 0; i < cantBytes; i++){
             registros[MBR] = registros[MBR] | (memoria[registros[MAR] & 0x0000FFFF]) << (24-8*i);
         }
     }
@@ -196,7 +193,7 @@ void ejecucion(uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint8_t m
     
     registros[IP] = registros[CS];
     
-    leerInstrucciones(memoria[registros[IP]], memoria, registros, tablaSegmento,instrucciones);
+    leerInstrucciones(memoria[registros[IP]], memoria, registros, tablaSegmento);
     while (registros[IP] != 0xFFFFFFFF)
        leerInstrucciones(memoria[registros[IP]], memoria, registros, tablaSegmento);
     

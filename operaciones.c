@@ -4,15 +4,78 @@ void SYS(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
     //falta leer eax para determinar el formato de lectura
     uint16_t cantBytes = (registros[ECX] >> 16) & 0x000000FF;
     uint16_t cantCeldas = (registros[ECX]) & 0x000000FF;
-    uint8_t modo_lectura = registros[EAX];
-    int valor;
+    uint8_t modo_lectura = registros[EAX],byteActual;
+    uint64_t valor;
+    int i,b,j,caracter;
     if(registros[OP1] == 0x1){ //lectura
-        //lectura, permite almacenar los datos leidos desde el teclado a partir de la posicion de memoria apuntada por EDX.
-        operacion_memoria(registros,memoria,registros[EDX], 0, LECTURA, cantBytes, tablaSegmentos);
+        //guarda en memoria
+        for(i = 0; i<cantCeldas; i++){
+            scanf("%d", &valor);
+            for(j = 0; j < cantBytes; j++){
+                byteActual =  valor >> ((cantBytes - 1 - j) * 8) & 0xFF;
+                operacion_memoria(registros,memoria,registros[EDX]+i*cantBytes+j, byteActual, ESCRITURA, 1, tablaSegmentos); // pongo un 4 porque es la maxima cantidad de bytes que entra en el MBR
+            }
+            printf("%04x", registros[EDX]+i*cantBytes);
+            switch (modo_lectura){
+                case 0x10:
+                    //muestro en hexa la direccion
+                    for(b = 0; b < cantBytes; b++){
+                        printf("%d ",valor >> ((cantBytes - 1 - b) * 8) & 0x01);//muestro el valor en binario
+                    }
+                    printf("\n");
+                break;
+                
+                case 0x08:
+                    printf("%x\n",valor);
+                case 0x04:
+                    printf("%llo\n",valor);
+                case 0x02:
+                    printf("%lc\n",valor);
+                    for(caracter = 0; caracter < cantBytes; caracter++){
+                        printf("%c",valor >> ((cantBytes - 1 - caracter) * 8) & 0xFF);
+                        printf("\n");
+                    }
+                case 0x01:
+                    printf("%d\n",valor);
+            }
+        }
+        
     }
-    else{ //escritura
-        scanf("%d", &valor);
-        operacion_memoria(registros,memoria,registros[EDX], valor, ESCRITURA, cantBytes, tablaSegmentos);
+    else{ //escribe en pantalla
+        valor = 0;
+        
+        for(i = 0; i<cantCeldas; i++){
+            for(j = 0; j < cantBytes; j++){
+                operacion_memoria(registros,memoria,registros[EDX]+i*cantBytes+j, 0, LECTURA, 1, tablaSegmentos);
+                byteActual = memoria[MBR];
+                valor = valor | (byteActual << ((cantBytes - 1 - j) * 8));
+            }
+            printf("%d\n", valor);
+            switch (modo_lectura){
+                case 0x10:
+                    //muestro en hexa la direccion
+                    for(b = 0; b < cantBytes; b++){
+                        printf("%d ",valor >> ((cantBytes - 1 - b) * 8) & 0x01);//muestro el valor en binario
+                    }
+                    printf("\n");
+                break;
+                
+                case 0x08:
+                    printf("%x\n",valor);
+                case 0x04:
+                    printf("%llo\n",valor);
+                case 0x02:
+                    printf("%lc\n",valor);
+                    for(caracter = 0; caracter < cantBytes; caracter++){
+                        printf("%c",valor >> ((cantBytes - 1 - caracter) * 8) & 0xFF);
+                        printf("\n");
+                    }
+                case 0x01:
+                    printf("%d\n",valor);
+            }
+            valor = 0;
+        }
+
     }
 }
 void RND(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
@@ -126,8 +189,9 @@ void XOR(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
     set(registros,memoria,registros[OP1],resultado,tablaSegmentos);
 }
 void SWAP(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
-    ResultadoOperacion(registros,memoria,get(registros[OP2],registros,memoria,tablaSegmentos),tablaSegmentos);
-    ResultadoOperacion(registros,memoria,get(registros[OP1],registros,memoria,tablaSegmentos),tablaSegmentos);
+    int aux = get(registros[OP1],registros,memoria,tablaSegmentos);
+    set(registros,memoria, registros[OP1],get(registros[OP2],registros,memoria,tablaSegmentos),tablaSegmentos);
+    set(registros,memoria, registros[OP2],aux,tablaSegmentos);
 }
 void LDL(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
     int resultado;
