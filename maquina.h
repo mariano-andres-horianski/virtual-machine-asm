@@ -23,26 +23,25 @@ void inicioRegistro(uint32_t reg[]);
 void inicioTablaSegmento(infoSegmento tabla[],uint16_t tamanio);
 void leerEncabezado(char nombre[],uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint8_t memoria[MEM]);
 void calcDirFisica(infoSegmento tablaSegmento[ENT],uint32_t regIP,int cantBytes);
-void operacion_memoria(uint32_t registros[], uint8_t memoria[], uint32_t direccion, uint32_t valor, uint8_t tipo_operacion, uint8_t cantBytes);
+void operacion_memoria(uint32_t registros[], uint8_t memoria[], uint32_t direccion, uint32_t valor, uint8_t tipo_operacion, uint8_t cantBytes,infoSegmento tablaSegmentos[]);
 void ejecucion(uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint8_t memoria[MEM]);
-void set(uint32_t registros[], uint8_t memoria[], uint32_t operando1, uint16_t operando2);
-uint32_t get(uint32_t operando,uint32_t registros[], uint8_t memoria[]);
+void set(uint32_t registros[], uint8_t memoria[], uint32_t operando1, uint16_t operando2,infoSegmento tablaSegmentos[]);
+uint32_t get(uint32_t operando,uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]);
 
 void leerInstrucciones(uint8_t instruccion, uint8_t memoria[], uint32_t registros[REG]);
 void operandos(uint32_t *lectura,uint32_t tipo,uint32_t registros[],uint8_t memoria[]);
-void ResultadoOperacion(uint32_t registros[],uint8_t memoria[], int resultado,infoSegmento tablaSegmentos[]);
 void actualizarCC(uint32_t registros[],uint32_t resultado);
-//un parametro
 
-void SYS(uint32_t registros[],uint8_t memoria[]);
-void JMP(uint32_t registros[]);
-void JZ(uint32_t registros[]);
-void JP(uint32_t registros[]);
-void JN(uint32_t registros[]);
-void JNZ(uint32_t registros[]);
-void JNP(uint32_t registros[]);
-void JNN(uint32_t registros[]);
-//dos parametros
+
+void RND(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]);
+void SYS(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]);
+void JMP(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]);
+void JZ(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]);
+void JP(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]);
+void JN(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]);
+void JNZ(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]);
+void JNP(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]);
+void JNN(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]);
 void ADD(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]);
 void MOV(uint32_t registros[], uint8_t memoria[], infoSegmento tablaSegmentos[]);
 void SUB(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]);
