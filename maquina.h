@@ -1,3 +1,5 @@
+#ifndef MAQUINA_H
+#define MAQUINA_H
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
@@ -21,16 +23,16 @@ typedef struct {
 
 void inicioRegistro(uint32_t reg[]);
 void inicioTablaSegmento(infoSegmento tabla[],uint16_t tamanio);
-void leerEncabezado(char nombre[],uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint8_t memoria[MEM]);
+void leerEncabezado(char nombre[],uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint8_t memoria[MEM], int *resultado);
 void calcDirFisica(infoSegmento tablaSegmento[ENT],uint32_t registros[],int cantBytes);
 void operacion_memoria(uint32_t registros[], uint8_t memoria[], uint32_t direccion, uint32_t valor, uint8_t tipo_operacion, uint8_t cantBytes,infoSegmento tablaSegmentos[]);
 void ejecucion(uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint8_t memoria[MEM]);
-void set(uint32_t registros[], uint8_t memoria[], uint32_t operando1, uint16_t operando2,infoSegmento tablaSegmentos[]);
+void set(uint32_t registros[], uint8_t memoria[], uint32_t operando1, int16_t operando2,infoSegmento tablaSegmentos[]);
 uint32_t get(uint32_t operando,uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]);
-
+void disassembler(uint8_t memoria[], infoSegmento tablaSegmentos[], uint32_t tamMemoria, uint32_t registros[]);
 void leerInstrucciones(uint8_t instruccion, uint8_t memoria[], uint32_t registros[REG], infoSegmento tablaSegmento[]);
 void operandos(uint32_t *lectura,uint32_t tipo,uint32_t registros[],uint8_t memoria[]);
-void actualizarCC(uint32_t registros[],uint32_t resultado);
+void actualizarCC(uint32_t registros[],int32_t resultado);
 
 
 void RND(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]);
@@ -62,6 +64,4 @@ void STOP(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]);
 void NO_ACCESIBLE(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]);
 
 
-void (*instrucciones[32])(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]) = 
-{SYS,JMP,JZ,JP,JN,JNZ,JNP,JNN,NOT,NO_ACCESIBLE,NO_ACCESIBLE,NO_ACCESIBLE,NO_ACCESIBLE,NO_ACCESIBLE,STOP,MOV,ADD,SUB,MUL,DIV,CMP,SHL,SHR,SAR,AND,OR,XOR,SWAP,LDL,LDH,RND};
-    
+#endif
