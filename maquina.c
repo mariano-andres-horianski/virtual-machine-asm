@@ -122,8 +122,8 @@ void disassembler(uint8_t memoria[], infoSegmento tablaSegmentos[], uint32_t tam
 
 void SYS(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
     //falta leer eax para determinar el formato de lectura
-    uint16_t cantBytes = (registros[ECX] >> 16) & 0x000000FF;
-    uint16_t cantCeldas = (registros[ECX]) & 0x000000FF;
+    uint16_t cantBytes = (registros[ECX] >> 16) & 0x0000FFFF;
+    uint16_t cantCeldas = (registros[ECX]) & 0x0000FFFF;
     uint8_t modo_lectura = registros[EAX],byteActual;
     uint64_t valor;
     int i,b,j,caracter;
@@ -135,7 +135,7 @@ void SYS(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
                 byteActual =  valor >> ((cantBytes - 1 - j) * 8) & 0xFF;
                 operacion_memoria(registros,memoria,registros[EDX]+i*cantBytes+j, byteActual, ESCRITURA, 1, tablaSegmentos); // pongo un 4 porque es la maxima cantidad de bytes que entra en el MBR
             }
-            printf("%04x", registros[EDX]+i*cantBytes);
+            printf("%04x", memoria[registros[EDX]+i*cantBytes]);
             switch (modo_lectura){
                 case 0x10:
                     //muestro en hexa la direccion
@@ -201,7 +201,6 @@ void SYS(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
                     printf("%d\n",valor);
                     break;
             }
-            valor = 0;
         }
 
     }
@@ -357,110 +356,73 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
     FILE *arch;
     char ident[6];
     char version;
-    uint16_t tamanio = 0;  // Inicializar para evitar problemas
+    uint16_t tamanio = 0;
     uint8_t byte_alto, byte_bajo;
     
-    *resultado = 0;  // Inicializar resultado en 0
+    *resultado = 0;
     
     arch = fopen(nombre, "rb");
     
     if(arch != NULL){
         printf("Archivo abierto correctamente\n");
         
-        // Obtener el tamaño del archivo para verificar
+        // obtener el tamaño del archivo para verificar
         fseek(arch, 0, SEEK_END);
         long tamano_archivo = ftell(arch);
-        fseek(arch, 0, SEEK_SET); // Volver al inicio
+        fseek(arch, 0, SEEK_SET);
         
-        printf("Tamaño del archivo: %ld bytes\n", tamano_archivo);
         
         if(fread(ident, sizeof(char), 5, arch) == 5){
-            ident[5] = '\0';
-            printf("Identificador leído: '%s'\n", ident);
-            
-            if(strcmp(ident, "VMX25") == 0){
-                printf("Identificador correcto\n");
-                
-                if(fread(&version, sizeof(char), 1, arch) == 1){
-                    printf("Versión leída: %d\n", (int)version);
-                    
-                    if(version == 1){
-                        printf("Versión correcta\n");
+            if(fread(&version, sizeof(char), 1, arch) == 1){
+                if(version == 1){
+                    // leer tamaño byte por byte (big-endian)
+                    // si lo leés normalmente, al ser AMD o Intel little endian no va a funcionar
+                    if(fread(&byte_alto, 1, 1, arch) == 1 && fread(&byte_bajo, 1, 1, arch) == 1){
+                        tamanio = (byte_alto << 8) | byte_bajo;
                         
-                        // Leer tamaño byte por byte (big-endian)
-                        if(fread(&byte_alto, 1, 1, arch) == 1 && fread(&byte_bajo, 1, 1, arch) == 1){
-                            tamanio = (byte_alto << 8) | byte_bajo;
-                            printf("Bytes leídos: %02X %02X\n", byte_alto, byte_bajo);
-                            printf("Tamaño calculado (big-endian): %u bytes\n", tamanio);
+                        long bytes_esperados = 5 + 1 + 2 + tamanio; // ident + version + tamanio + codigo
+                        if(tamanio < MEM && bytes_esperados <= tamano_archivo){
+                            long pos_actual = ftell(arch);
+                            size_t bytes_leidos = fread(memoria, sizeof(uint8_t), tamanio, arch);
                             
-                            // Verificar que el tamaño sea coherente con el archivo
-                            long bytes_esperados = 5 + 1 + 2 + tamanio; // ident + version + tamanio + codigo
-                            printf("Bytes esperados en total: %ld\n", bytes_esperados);
-                            
-                            if(tamanio < MEM && bytes_esperados <= tamano_archivo){
-                                printf("Tamaño válido, leyendo código...\n");
+                            if(bytes_leidos == tamanio){
                                 
-                                // Verificar posición actual del archivo
-                                long pos_actual = ftell(arch);
-                                printf("Posición actual en archivo: %ld\n", pos_actual);
-                                printf("Bytes disponibles para código: %ld\n", tamano_archivo - pos_actual);
+                                inicioRegistro(registros);
+                                inicioTablaSegmento(tablaSegmento, tamanio);
+                                *resultado = 1;
                                 
-                                size_t bytes_leidos = fread(memoria, sizeof(uint8_t), tamanio, arch);
-                                printf("Bytes realmente leídos: %zu de %u esperados\n", bytes_leidos, tamanio);
-                                
-                                if(bytes_leidos == tamanio){
-                                    // IMPORTANTE: Inicializar ANTES de marcar como exitoso
-                                    printf("Inicializando registros y tabla de segmentos...\n");
-                                    inicioRegistro(registros);
-                                    inicioTablaSegmento(tablaSegmento, tamanio);
-                                    printf("Inicialización completada. Tamaño código: %u\n", tamanio);
-                                    
-                                    // Debug: verificar la tabla de segmentos
-                                    printf("Tabla de segmentos después de inicialización:\n");
-                                    printf("  CS: base=%u, tamaño=%u\n", tablaSegmento[0].base, tablaSegmento[0].tamanio);
-                                    printf("  DS: base=%u, tamaño=%u\n", tablaSegmento[1].base, tablaSegmento[1].tamanio);
-                                    
-                                    *resultado = 1;
-                                    printf("Código leído correctamente (%u bytes)\n", tamanio);
-                                    
-                                    // Debug: mostrar primeros bytes del código
-                                    printf("Primeros bytes del código: ");
-                                    int i;
-                                    for(i = 0; i < (tamanio < 10 ? tamanio : 10); i++){
-                                        printf("%02X ", memoria[i]);
-                                    }
-                                    printf("\n");
-                                    
-                                } else {
-                                    printf("ERROR: No se pudo leer el código completo\n");
-                                    printf("Posible causa: archivo truncado o tamaño incorrecto\n");
-                                }
                             } else {
-                                if(tamanio >= MEM) {
-                                    printf("ERROR: Tamaño demasiado grande (%u >= %d)\n", tamanio, MEM);
-                                } else {
-                                    printf("ERROR: El archivo es más pequeño de lo esperado\n");
-                                    printf("Tamaño archivo: %ld, esperado: %ld\n", tamano_archivo, bytes_esperados);
-                                }
+                                printf("ERROR: No se pudo leer el código completo\n");
+                                printf("Posible causa: archivo truncado o tamaño incorrecto\n");
                             }
                         } else {
-                            printf("ERROR: No se pudo leer el tamaño (bytes individuales)\n");
+                            if(tamanio >= MEM) {
+                                printf("ERROR: Tamaño demasiado grande (%u >= %d)\n", tamanio, MEM);
+                            } else {
+                                printf("ERROR: El archivo es más pequeño de lo esperado\n");
+                                printf("Tamaño archivo: %ld, esperado: %ld\n", tamano_archivo, bytes_esperados);
+                            }
                         }
-                    } else {
-                        printf("ERROR: Versión incorrecta (esperado: 1, leído: %d)\n", (int)version);
                     }
-                } else {
-                    printf("ERROR: No se pudo leer la versión\n");
+                    else {
+                        printf("ERROR: No se pudo leer el tamaño\n");
+                    }
                 }
-            } else {
-                printf("ERROR: Identificador incorrecto (esperado: 'VMX25', leído: '%s')\n", ident);
+                else {
+                    printf("ERROR: Versión incorrecta (esperado: 1, leído: %d)\n", (int)version);
+                }
             }
+            else {
+                printf("ERROR: No se pudo leer la versión\n");
+            }
+        
         } else {
             printf("ERROR: No se pudo leer el identificador\n");
         }
         
         fclose(arch);
-    } else {
+    }
+    else {
         printf("ERROR: No se pudo abrir el archivo '%s'\n", nombre);
     }
     
