@@ -595,7 +595,7 @@ void set(uint32_t registros[], uint8_t memoria[], uint32_t operando1, int32_t op
         operacion_memoria(registros, memoria, direccion, operando2, ESCRITURA, 1,tablaSegmentos);
     }
 }
-/*
+
 void ejecucion(uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint8_t memoria[MEM]){
     //falta evaluar la cantidad de argumentos para saber cual de los dos vectores de punteros a funciones utilizar
     uint8_t instruccion;
@@ -607,17 +607,11 @@ void ejecucion(uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint8_t m
 
     leerInstrucciones(memoria[registros[IP]], memoria, registros, tablaSegmento);
     while (registros[IP] != 0xFFFFFFFF){
-       if(registros[IP] >= tablaSegmento[0].base + tablaSegmento[0].tamanio || registros[IP] >= MEM) {
-            printf("SEGMENTATION FAULT\n");
-            registros[IP] = 0xFFFFFFFF;
-            break;
-        }
        leerInstrucciones(memoria[registros[IP]], memoria, registros, tablaSegmento);
     }
 
 }
-
-*/
+/*
 void ejecucion(uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint8_t memoria[MEM]){
     registros[IP] = registros[CS];
     
@@ -625,7 +619,7 @@ void ejecucion(uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint8_t m
     printf("DEBUG: Segmento código: base=%u, tamaño=%u\n", 
            tablaSegmento[0].base, tablaSegmento[0].tamanio);
     
-    int contador = 0; // Para evitar bucles infinitos durante debug
+    int contador = 0; // para evitar bucles infinitos durante debug
     
     leerInstrucciones(memoria[registros[IP]], memoria, registros, tablaSegmento);
     while (registros[IP] != 0xFFFFFFFF && contador < 1000) {
@@ -639,6 +633,7 @@ void ejecucion(uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint8_t m
         printf("DEBUG: Detenido por límite de iteraciones\n");
     }
 }
+*/
 void actualizarCC(uint32_t registros[],int32_t resultado){
     registros[CC] = 0;
     
