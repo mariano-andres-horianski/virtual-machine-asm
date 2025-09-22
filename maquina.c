@@ -130,6 +130,7 @@ void SYS(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
             scanf("%d", &valor);
             for(j = 0; j < cantBytes; j++){
                 byteActual =  (valor >> ((cantBytes - 1 - j) * 8)) & 0xFF;
+                //llamamos a operacion memoria y no a set para no escribir exclusivamente 4 bytes de golpe
                 operacion_memoria(registros,memoria,registros[EDX]+i*cantBytes+j, byteActual, ESCRITURA, 1, tablaSegmentos); // pongo un 4 porque es la maxima cantidad de bytes que entra en el MBR
             }
             printf("%04x", memoria[registros[EDX]+i*cantBytes]);
@@ -169,7 +170,7 @@ void SYS(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
             for(j = 0; j < cantBytes; j++){
                 operacion_memoria(registros,memoria,registros[EDX]+i*cantBytes+j, 0, LECTURA, 1, tablaSegmentos);
                 byteActual = registros[MBR];
-                valor = valor | (byteActual << ((cantBytes - 1) * 8 *j));
+                valor = valor | (byteActual << ((cantBytes - 1 - j) * 8));
             }
             switch (modo_lectura){
                 case 0x10:
@@ -424,7 +425,6 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
 }
 void operacion_memoria(uint32_t registros[], uint8_t memoria[], uint32_t direccion, uint32_t valor, uint8_t tipo_operacion, uint8_t cantBytes, infoSegmento tablasegmento[]){
     //acá se ejecutan las escrituras o lecturas del DS
-    //falta añadir codigo de segmento
     int i;
     registros[LAR] = registros[DS] | direccion;
     registros[MBR] = valor;
@@ -562,13 +562,12 @@ uint32_t get(uint32_t operando,uint32_t registros[], uint8_t memoria[],infoSegme
     else {
         //el operando es direccion de memoria
 
-        operacion_memoria(registros, memoria, direccion, 0, LECTURA, 1, tablaSegmentos); //desde el get() solo leo la posición de memoria -> solo leo 1 byte y por eso el 1
+        operacion_memoria(registros, memoria, direccion, 0, LECTURA, 4, tablaSegmentos); //4 bytes porque es el tamaño de cada celda
         return registros[MBR];
     }
 }
 void set(uint32_t registros[], uint8_t memoria[], uint32_t operando1, int32_t operando2,infoSegmento tablaSegmentos[]){
     //operando 2 será inmediato siempre en esta función, pues se la llamará con el argumento get()
-    //no necesito el argumento operando1, corregir
     int tipo_operando1 = (operando1 >> 24) & 0x00000003;
     uint32_t direccion;
     uint16_t offset;
@@ -580,7 +579,7 @@ void set(uint32_t registros[], uint8_t memoria[], uint32_t operando1, int32_t op
     else{
         offset = operando1 & 0x0000FFFF;
         direccion = registros[cod_reg] + offset;
-        operacion_memoria(registros, memoria, direccion, operando2, ESCRITURA, 1,tablaSegmentos);
+        operacion_memoria(registros, memoria, direccion, operando2, ESCRITURA, 4,tablaSegmentos);
     }
 }
 
@@ -599,29 +598,7 @@ void ejecucion(uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint8_t m
     }
 
 }
-/*
-void ejecucion(uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint8_t memoria[MEM]){
-    registros[IP] = registros[CS];
-    
-    printf("DEBUG: Iniciando ejecución con IP=%u\n", registros[IP]);
-    printf("DEBUG: Segmento código: base=%u, tamaño=%u\n", 
-           tablaSegmento[0].base, tablaSegmento[0].tamanio);
-    
-    int contador = 0; // para evitar bucles infinitos durante debug
-    
-    leerInstrucciones(memoria[registros[IP]], memoria, registros, tablaSegmento);
-    while (registros[IP] != 0xFFFFFFFF && contador < 1000) {
-        contador++;
-        printf("DEBUG: Ejecutando instrucción #%d, IP=%u\n", contador, registros[IP]);
-        
-        leerInstrucciones(memoria[registros[IP]], memoria, registros, tablaSegmento);
-    }
-    
-    if(contador >= 1000) {
-        printf("DEBUG: Detenido por límite de iteraciones\n");
-    }
-}
-*/
+
 void actualizarCC(uint32_t registros[],int32_t resultado){
     registros[CC] = 0;
     
