@@ -27,7 +27,7 @@ void leerEncabezado(char nombre[],uint32_t registros[REG],infoSegmento tablaSegm
 void calcDirFisica(infoSegmento tablaSegmento[ENT],uint32_t registros[],int cantBytes);
 void operacion_memoria(uint32_t registros[], uint8_t memoria[], uint32_t direccion, uint32_t valor, uint8_t tipo_operacion, uint8_t cantBytes,infoSegmento tablaSegmentos[]);
 void ejecucion(uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint8_t memoria[MEM]);
-void set(uint32_t registros[], uint8_t memoria[], uint32_t operando1, int16_t operando2,infoSegmento tablaSegmentos[]);
+void set(uint32_t registros[], uint8_t memoria[], uint32_t operando1, int32_t operando2,infoSegmento tablaSegmentos[]);
 uint32_t get(uint32_t operando,uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]);
 void disassembler(uint8_t memoria[], infoSegmento tablaSegmentos[], uint32_t tamMemoria, uint32_t registros[]);
 void leerInstrucciones(uint8_t instruccion, uint8_t memoria[], uint32_t registros[REG], infoSegmento tablaSegmento[]);

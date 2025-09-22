@@ -127,12 +127,14 @@ void SYS(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
     uint8_t modo_lectura = registros[EAX],byteActual;
     uint64_t valor;
     int i,b,j,caracter;
+    printf("DEBUG SYS: OP1=%u, cantBytes=%u, cantCeldas=%u, modo=%02X, EDX=%u, ECX=%u\n", 
+           registros[OP1], cantBytes, cantCeldas, modo_lectura, registros[EDX],registros[ECX]);
     if(registros[OP1] == 0x1){ //lectura
         //guarda en memoria
         for(i = 0; i<cantCeldas; i++){
             scanf("%d", &valor);
             for(j = 0; j < cantBytes; j++){
-                byteActual =  valor >> ((cantBytes - 1 - j) * 8) & 0xFF;
+                byteActual =  (valor >> ((cantBytes - 1 - j) * 8)) & 0xFF;
                 operacion_memoria(registros,memoria,registros[EDX]+i*cantBytes+j, byteActual, ESCRITURA, 1, tablaSegmentos); // pongo un 4 porque es la maxima cantidad de bytes que entra en el MBR
             }
             printf("%04x", memoria[registros[EDX]+i*cantBytes]);
@@ -575,7 +577,7 @@ uint32_t get(uint32_t operando,uint32_t registros[], uint8_t memoria[],infoSegme
         return registros[MBR];
     }
 }
-void set(uint32_t registros[], uint8_t memoria[], uint32_t operando1, int16_t operando2,infoSegmento tablaSegmentos[]){
+void set(uint32_t registros[], uint8_t memoria[], uint32_t operando1, int32_t operando2,infoSegmento tablaSegmentos[]){
     //operando 2 será inmediato siempre en esta función, pues se la llamará con el argumento get()
     //no necesito el argumento operando1, corregir
     int tipo_operando1 = (operando1 >> 24) & 0x00000003;
