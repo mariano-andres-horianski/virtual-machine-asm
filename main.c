@@ -9,7 +9,7 @@ int main(int argc, char *argv[])
     infoSegmento tablaSegmento[ENT];        // tabla de segmentos
     uint32_t registros[REG];                // registros de la máquina
     // Vector de punteros a funciones
-    int tam=0, resultado=0;
+    int tam=0, resultado;
     
     if (argc>=2)
         tam=strlen(argv[1]);
@@ -22,7 +22,6 @@ int main(int argc, char *argv[])
         //argv[1] es el nombre del archivo
 
         leerEncabezado(argv[1], registros, tablaSegmento, memoria, &resultado);
-        printf("resultado: %d\n", resultado);
         if (resultado){
             printf("Inicio de ejecucion del programa %s\n", argv[1]);
             ejecucion(registros, tablaSegmento, memoria);

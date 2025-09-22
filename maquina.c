@@ -56,9 +56,6 @@ void disassembler(uint8_t memoria[], infoSegmento tablaSegmentos[], uint32_t tam
     uint32_t dirFisica, operando1, operando2, PC = tablaSegmentos[CS].base;
     uint8_t instruccion[6],N,tipo1,tipo2,ini1;
     int i;
-    printf("Entro al disassembler\n");
-    printf("PC < tablaSegmentos[CS].base + tablaSegmentos[CS].tamanio\n");
-    printf("%d <  %d + %d\n",PC,tablaSegmentos[registros[CS]].base,tablaSegmentos[registros[CS]].tamanio);
     
     while (PC < tablaSegmentos[registros[CS]].base + tablaSegmentos[registros[CS]].tamanio) {
         dirFisica = PC;
@@ -127,8 +124,6 @@ void SYS(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
     uint8_t modo_lectura = registros[EAX],byteActual;
     uint64_t valor;
     int i,b,j,caracter;
-    printf("DEBUG SYS: OP1=%08x, cantBytes=%u, cantCeldas=%u, modo=%02X, EDX=%u, ECX=%u\n", 
-           get(registros[OP1],registros,memoria,tablaSegmentos), cantBytes, cantCeldas, modo_lectura, registros[EDX],registros[ECX]);
     if(get(registros[OP1],registros,memoria,tablaSegmentos) == 0x1){ //lectura
         //guarda en memoria
         for(i = 0; i<cantCeldas; i++){
@@ -174,10 +169,8 @@ void SYS(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
             for(j = 0; j < cantBytes; j++){
                 operacion_memoria(registros,memoria,registros[EDX]+i*cantBytes+j, 0, LECTURA, 1, tablaSegmentos);
                 byteActual = registros[MBR];
-                printf("%d ", registros[MBR]);
                 valor = valor | (byteActual << ((cantBytes - 1) * 8 *j));
             }
-            printf("%d\n", valor);
             switch (modo_lectura){
                 case 0x10:
                     //muestro en hexa la direccion
@@ -432,6 +425,7 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
 void operacion_memoria(uint32_t registros[], uint8_t memoria[], uint32_t direccion, uint32_t valor, uint8_t tipo_operacion, uint8_t cantBytes, infoSegmento tablasegmento[]){
     //acá se ejecutan las escrituras o lecturas del DS
     //falta añadir codigo de segmento
+    int i;
     registros[LAR] = registros[DS] | direccion;
     registros[MBR] = valor;
     calcDirFisica(tablasegmento,registros,cantBytes);
@@ -439,8 +433,6 @@ void operacion_memoria(uint32_t registros[], uint8_t memoria[], uint32_t direcci
         return;
     }
     registros[MAR] = registros[MAR] | (cantBytes << 16);
-    int i;
-
     if (tipo_operacion == ESCRITURA){
         cantBytes = (registros[MAR] >> 16) & 0x000000FF;
         for (i = 0; i < cantBytes; i++) {
