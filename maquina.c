@@ -127,9 +127,9 @@ void SYS(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
     uint8_t modo_lectura = registros[EAX],byteActual;
     uint64_t valor;
     int i,b,j,caracter;
-    printf("DEBUG SYS: OP1=%u, cantBytes=%u, cantCeldas=%u, modo=%02X, EDX=%u, ECX=%u\n", 
-           registros[OP1], cantBytes, cantCeldas, modo_lectura, registros[EDX],registros[ECX]);
-    if(registros[OP1] == 0x1){ //lectura
+    printf("DEBUG SYS: OP1=%08x, cantBytes=%u, cantCeldas=%u, modo=%02X, EDX=%u, ECX=%u\n", 
+           get(registros[OP1],registros,memoria,tablaSegmentos), cantBytes, cantCeldas, modo_lectura, registros[EDX],registros[ECX]);
+    if(get(registros[OP1],registros,memoria,tablaSegmentos) == 0x1){ //lectura
         //guarda en memoria
         for(i = 0; i<cantCeldas; i++){
             scanf("%d", &valor);
@@ -167,14 +167,15 @@ void SYS(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
         }
 
     }
-    else{ //escribe en pantalla
+    else if(get(registros[OP1],registros,memoria,tablaSegmentos) == 0x2){ //escribe en pantalla
         valor = 0;
 
         for(i = 0; i<cantCeldas; i++){
             for(j = 0; j < cantBytes; j++){
                 operacion_memoria(registros,memoria,registros[EDX]+i*cantBytes+j, 0, LECTURA, 1, tablaSegmentos);
                 byteActual = registros[MBR];
-                valor = valor | (byteActual << ((cantBytes - 1 - j) * 8));
+                printf("%d ", registros[MBR]);
+                valor = valor | (byteActual << ((cantBytes - 1) * 8 *j));
             }
             printf("%d\n", valor);
             switch (modo_lectura){
@@ -435,7 +436,7 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
 void operacion_memoria(uint32_t registros[], uint8_t memoria[], uint32_t direccion, uint32_t valor, uint8_t tipo_operacion, uint8_t cantBytes, infoSegmento tablasegmento[]){
     //acá se ejecutan las escrituras o lecturas del DS
     //falta añadir codigo de segmento
-    registros[LAR] = (registros[DS] << 16) | direccion;
+    registros[LAR] = registros[DS] | direccion;
     registros[MBR] = valor;
     calcDirFisica(tablasegmento,registros,cantBytes);
     if(registros[IP] == 0xFFFFFFFF) {
