@@ -1,6 +1,7 @@
 #ifndef MAQUINA_H
 #define MAQUINA_H
 #include <stdint.h>
+#include<time.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
