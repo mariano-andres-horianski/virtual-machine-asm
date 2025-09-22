@@ -344,13 +344,7 @@ void STOP(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
 void MOV(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
     set(registros,memoria,registros[OP1],get(registros[OP2], registros, memoria,tablaSegmentos),tablaSegmentos);
 }
-/*
-.
-.
-- SE DETECTARON LOS 3 TIPOS DE ERRORES Y SE INFORMO POR PANTALLA
-.
-.
-*/
+
 void NO_ACCESIBLE(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
     printf("INSTRUCCION INVALIDA: codigo de operacion de la instruccion a ejecutar no existe\n");  // detecta uno de los 3 errores que se deben tener en cuenta segun requisitos
 }
@@ -359,6 +353,8 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
     FILE *arch;
     char ident[6];
     char version;
+    long bytes_esperados, pos_actual;
+    size_t bytes_leidos;
     uint16_t tamanio = 0;
     uint8_t byte_alto, byte_bajo;
     
@@ -375,7 +371,7 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
         fseek(arch, 0, SEEK_SET);
         
         
-        if(fread(ident, sizeof(char), 5, arch) == 5){
+        if(fread(ident, sizeof(char), 5, arch) == 5 && strcmp(ident,"VMX25") == 0){
             if(fread(&version, sizeof(char), 1, arch) == 1){
                 if(version == 1){
                     // leer tamaño byte por byte (big-endian)
@@ -383,10 +379,10 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
                     if(fread(&byte_alto, 1, 1, arch) == 1 && fread(&byte_bajo, 1, 1, arch) == 1){
                         tamanio = (byte_alto << 8) | byte_bajo;
                         
-                        long bytes_esperados = 5 + 1 + 2 + tamanio; // ident + version + tamanio + codigo
+                        bytes_esperados = 5 + 1 + 2 + tamanio; // ident + version + tamanio + codigo
                         if(tamanio < MEM && bytes_esperados <= tamano_archivo){
-                            long pos_actual = ftell(arch);
-                            size_t bytes_leidos = fread(memoria, sizeof(uint8_t), tamanio, arch);
+                            pos_actual = ftell(arch);
+                            bytes_leidos = fread(memoria, sizeof(uint8_t), tamanio, arch);
                             
                             if(bytes_leidos == tamanio){
                                 
