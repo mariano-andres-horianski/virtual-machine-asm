@@ -427,7 +427,7 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
         printf("ERROR: No se pudo leer el encabezado correctamente\n");
     }
 }
-void operacion_memoria(uint32_t registros[], uint8_t memoria[], uint16_t direccion, int32_t valor, uint8_t tipo_operacion, uint8_t cantBytes, infoSegmento tablasegmento[]){
+void operacion_memoria(uint32_t registros[], uint8_t memoria[], uint32_t direccion, int32_t valor, uint8_t tipo_operacion, uint8_t cantBytes, infoSegmento tablasegmento[]){
     //acá se ejecutan las escrituras o lecturas del DS
     int i;
     registros[LAR] = registros[DS] | direccion;
