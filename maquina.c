@@ -594,13 +594,8 @@ void set(uint32_t registros[], uint8_t memoria[], uint32_t operando1, int32_t op
         operacion_memoria(registros, memoria, direccion, operando2, ESCRITURA, 4,tablaSegmentos);
     }
 }
-/*
+
 void ejecucion(uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint8_t memoria[MEM]){
-    //falta evaluar la cantidad de argumentos para saber cual de los dos vectores de punteros a funciones utilizar
-    uint8_t instruccion;
-    uint8_t codInstruccion;
-    uint8_t Tipo1,Tipo2;
-    uint32_t operando2,operando1;
 
     registros[IP] = registros[CS];
 
@@ -610,8 +605,7 @@ void ejecucion(uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint8_t m
     }
 
 }
-*/
-
+/*
 void ejecucion(uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint8_t memoria[MEM]){
     registros[IP] = registros[CS];
     
@@ -633,7 +627,7 @@ void ejecucion(uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint8_t m
         printf("DEBUG: Detenido por límite de iteraciones\n");
     }
 }
-
+*/
 void actualizarCC(uint32_t registros[],int32_t resultado){
     registros[CC] = 0;
     
