@@ -125,7 +125,6 @@ void SYS(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
     int i,b,j,caracter;
     if(get(registros[OP1],registros,memoria,tablaSegmentos) == 0x1){ //lectura
         //guarda en memoria
-        printf("Ejecuto SYS 1\n");
         for(i = 0; i<cantCeldas; i++){
             if(scanf("%lld", &valor) != 1) {
                 printf("ERROR: Entrada inválida\n");
@@ -137,7 +136,7 @@ void SYS(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
                 //llamamos a operacion memoria y no a set para no escribir exclusivamente 4 bytes de golpe
                 operacion_memoria(registros,memoria,registros[EDX]+i*cantBytes+j, byteActual, ESCRITURA, 1, tablaSegmentos);
             }
-            printf("[%04x] %04x",registros[EDX]+i*cantBytes, memoria[registros[EDX]+i*cantBytes]);
+            printf("[%04x] %04x",registros[EDX]+i*cantBytes, registros[MBR] & 0xFF);
             switch (modo_lectura){
                 case 0x10:
                     //muestro en hexa la direccion
@@ -169,7 +168,6 @@ void SYS(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
     }
     else if(get(registros[OP1],registros,memoria,tablaSegmentos) == 0x2){ //escribe en pantalla
         valor = 0;
-        printf("Ejecuto SYS 2\n");
         for(i = 0; i<cantCeldas; i++){
             for(j = 0; j < cantBytes; j++){
                 operacion_memoria(registros,memoria,registros[EDX]+i*cantBytes+j, 0, LECTURA, 1, tablaSegmentos);
@@ -243,19 +241,14 @@ void JNN(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
 void ADD(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
     int resultado;
     resultado = (int32_t)get(registros[OP1],registros,memoria,tablaSegmentos) + (int32_t)get(registros[OP2],registros,memoria,tablaSegmentos);
-    printf("Resultado del add: %d\n",resultado);
-    
-    actualizarCC(registros,resultado); // ----------------------se tiene en cuenta el orden de las funciones actCC y luego resultado??
+    actualizarCC(registros,resultado);
     set(registros,memoria,registros[OP1],resultado,tablaSegmentos);
-    printf("EFX tiene: %d\n",registros[EFX]);
-    printf("EEX tiene: %d\n",registros[EEX]);
 }
 void SUB(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
     int32_t resultado;
     resultado = get(registros[OP1],registros,memoria,tablaSegmentos) - get(registros[OP2],registros,memoria,tablaSegmentos);
     actualizarCC(registros,resultado);
     set(registros,memoria,registros[OP1],resultado,tablaSegmentos);
-    printf("EEX tiene: %d\n",registros[EEX]);
 }
 void MUL(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
     int resultado;
@@ -279,7 +272,6 @@ void DIV(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
 void CMP(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
     int resultado;
     resultado = get(registros[OP1],registros,memoria,tablaSegmentos) - get(registros[OP2],registros,memoria,tablaSegmentos);
-    printf("Resultado de CMP: %d\n", resultado);
     actualizarCC(registros,resultado);
 }
 //Los shifts en C serán lógicos porque siempre trabajamos con unsigned
@@ -435,7 +427,7 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
         printf("ERROR: No se pudo leer el encabezado correctamente\n");
     }
 }
-void operacion_memoria(uint32_t registros[], uint8_t memoria[], uint32_t direccion, int32_t valor, uint8_t tipo_operacion, uint8_t cantBytes, infoSegmento tablasegmento[]){
+void operacion_memoria(uint32_t registros[], uint8_t memoria[], uint16_t direccion, int32_t valor, uint8_t tipo_operacion, uint8_t cantBytes, infoSegmento tablasegmento[]){
     //acá se ejecutan las escrituras o lecturas del DS
     int i;
     registros[LAR] = registros[DS] | direccion;
