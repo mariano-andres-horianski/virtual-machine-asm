@@ -53,10 +53,12 @@ static void mostrarHexa(uint8_t instruccion[], uint8_t inicio, uint8_t fin) {
 
 // recorrer memoria
 void disassembler(uint8_t memoria[], infoSegmento tablaSegmentos[], uint32_t tamMemoria, uint32_t registros[]) {
-    uint32_t dirFisica, operando1, operando2, PC = tablaSegmentos[CS].base;
+    uint32_t dirFisica, operando1, operando2, PC = tablaSegmentos[registros[CS]].base;
     uint8_t instruccion[6],N,tipo1,tipo2,ini1;
     int i;
-    
+    printf("inicio del disassembler\n");
+    printf("PC < tablaSegmentos[registros[CS]].base + tablaSegmentos[registros[CS]].tamanio\n");
+    printf("%d < %d + %d", PC, tablaSegmentos[registros[CS]].base, tablaSegmentos[registros[CS]].tamanio);
     while (PC < tablaSegmentos[registros[CS]].base + tablaSegmentos[registros[CS]].tamanio) {
         dirFisica = PC;
         printf("dirFisica: %d",dirFisica);
@@ -122,18 +124,23 @@ void SYS(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
     uint16_t cantBytes = (registros[ECX] >> 16) & 0x0000FFFF;
     uint16_t cantCeldas = (registros[ECX]) & 0x0000FFFF;
     uint8_t modo_lectura = registros[EAX],byteActual;
-    uint64_t valor;
+    int64_t valor;
     int i,b,j,caracter;
     if(get(registros[OP1],registros,memoria,tablaSegmentos) == 0x1){ //lectura
         //guarda en memoria
+        printf("Ejecuto SYS 1\n");
         for(i = 0; i<cantCeldas; i++){
-            scanf("%d", &valor);
+            if(scanf("%lld", &valor) != 1) {
+                printf("ERROR: Entrada inválida\n");
+                STOP(registros, memoria, tablaSegmentos);
+                return;
+            }
             for(j = 0; j < cantBytes; j++){
                 byteActual =  (valor >> ((cantBytes - 1 - j) * 8)) & 0xFF;
                 //llamamos a operacion memoria y no a set para no escribir exclusivamente 4 bytes de golpe
-                operacion_memoria(registros,memoria,registros[EDX]+i*cantBytes+j, byteActual, ESCRITURA, 1, tablaSegmentos); // pongo un 4 porque es la maxima cantidad de bytes que entra en el MBR
+                operacion_memoria(registros,memoria,registros[EDX]+i*cantBytes+j, byteActual, ESCRITURA, 1, tablaSegmentos);
             }
-            printf("%04x", memoria[registros[EDX]+i*cantBytes]);
+            printf("[%04x] %04x",registros[EDX]+i*cantBytes, memoria[registros[EDX]+i*cantBytes]);
             switch (modo_lectura){
                 case 0x10:
                     //muestro en hexa la direccion
@@ -157,7 +164,7 @@ void SYS(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
                     }
                     break;
                 case 0x01:
-                    printf("%d\n",valor);
+                    printf("%lld\n",valor);
                     break;
             }
         }
@@ -165,7 +172,7 @@ void SYS(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
     }
     else if(get(registros[OP1],registros,memoria,tablaSegmentos) == 0x2){ //escribe en pantalla
         valor = 0;
-
+        printf("Ejecuto SYS 2\n");
         for(i = 0; i<cantCeldas; i++){
             for(j = 0; j < cantBytes; j++){
                 operacion_memoria(registros,memoria,registros[EDX]+i*cantBytes+j, 0, LECTURA, 1, tablaSegmentos);
@@ -195,7 +202,7 @@ void SYS(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
                     }
                     break;
                 case 0x01:
-                    printf("%d\n",valor);
+                    printf("%lld\n",valor);
                     break;
             }
         }
@@ -238,15 +245,20 @@ void JNN(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
 
 void ADD(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
     int resultado;
-    resultado = get(registros[OP1],registros,memoria,tablaSegmentos) + get(registros[OP2],registros,memoria,tablaSegmentos);
+    resultado = (int32_t)get(registros[OP1],registros,memoria,tablaSegmentos) + (int32_t)get(registros[OP2],registros,memoria,tablaSegmentos);
+    printf("Resultado del add: %d\n",resultado);
+    
     actualizarCC(registros,resultado); // ----------------------se tiene en cuenta el orden de las funciones actCC y luego resultado??
     set(registros,memoria,registros[OP1],resultado,tablaSegmentos);
+    printf("EFX tiene: %d\n",registros[EFX]);
+    printf("EEX tiene: %d\n",registros[EEX]);
 }
 void SUB(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
-    int resultado;
+    int32_t resultado;
     resultado = get(registros[OP1],registros,memoria,tablaSegmentos) - get(registros[OP2],registros,memoria,tablaSegmentos);
     actualizarCC(registros,resultado);
     set(registros,memoria,registros[OP1],resultado,tablaSegmentos);
+    printf("EEX tiene: %d\n",registros[EEX]);
 }
 void MUL(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
     int resultado;
@@ -270,6 +282,7 @@ void DIV(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
 void CMP(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
     int resultado;
     resultado = get(registros[OP1],registros,memoria,tablaSegmentos) - get(registros[OP2],registros,memoria,tablaSegmentos);
+    printf("Resultado de CMP: %d\n", resultado);
     actualizarCC(registros,resultado);
 }
 //Los shifts en C serán lógicos porque siempre trabajamos con unsigned
@@ -287,7 +300,7 @@ void SHR(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
 }
 void SAR(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
     int resultado;
-    if(get(registros[OP1],registros,memoria,tablaSegmentos) & 0x80000000 != 0) // si es neg, el resultado tambien lo sera: agrego unos
+    if((get(registros[OP1],registros,memoria,tablaSegmentos) & 0x80000000) != 0) // si es neg, el resultado tambien lo sera: agrego unos
         resultado = get(registros[OP1],registros,memoria,tablaSegmentos) >> get(registros[OP2],registros,memoria,tablaSegmentos) | ~(0xFFFFFFFF >> get(registros[OP2],registros,memoria,tablaSegmentos));
     else
         resultado = (get(registros[OP1],registros,memoria,tablaSegmentos) >> get(registros[OP2],registros,memoria,tablaSegmentos)); // si es positivo: agrego ceros
@@ -366,48 +379,50 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
         
         
         if(fread(ident, sizeof(char), 5, arch) == 5 && strcmp(ident,"VMX25") == 0){
-            if(fread(&version, sizeof(char), 1, arch) == 1){
-                if(version == 1){
-                    // leer tamaño byte por byte (big-endian)
-                    // si lo leés normalmente, al ser AMD o Intel little endian no va a funcionar
-                    if(fread(&byte_alto, 1, 1, arch) == 1 && fread(&byte_bajo, 1, 1, arch) == 1){
-                        tamanio = (byte_alto << 8) | byte_bajo;
-                        
-                        bytes_esperados = 5 + 1 + 2 + tamanio; // ident + version + tamanio + codigo
-                        if(tamanio < MEM && bytes_esperados <= tamano_archivo){
-                            pos_actual = ftell(arch);
-                            bytes_leidos = fread(memoria, sizeof(uint8_t), tamanio, arch);
+            ident[5]='\0';
+            if(strcmp(ident,"VMX25") == 0)
+                if(fread(&version, sizeof(char), 1, arch) == 1){
+                    if(version == 1){
+                        // leer tamaño byte por byte (big-endian)
+                        // si lo leés normalmente, al ser AMD o Intel little endian no va a funcionar
+                        if(fread(&byte_alto, 1, 1, arch) == 1 && fread(&byte_bajo, 1, 1, arch) == 1){
+                            tamanio = (byte_alto << 8) | byte_bajo;
                             
-                            if(bytes_leidos == tamanio){
+                            bytes_esperados = 5 + 1 + 2 + tamanio; // ident + version + tamanio + codigo
+                            if(tamanio < MEM && bytes_esperados <= tamano_archivo){
+                                pos_actual = ftell(arch);
+                                bytes_leidos = fread(memoria, sizeof(uint8_t), tamanio, arch);
                                 
-                                inicioRegistro(registros);
-                                inicioTablaSegmento(tablaSegmento, tamanio);
-                                *resultado = 1;
-                                
+                                if(bytes_leidos == tamanio){
+                                    
+                                    inicioRegistro(registros);
+                                    inicioTablaSegmento(tablaSegmento, tamanio);
+                                    *resultado = 1;
+                                    
+                                } else {
+                                    printf("ERROR: No se pudo leer el código completo\n");
+                                    printf("Posible causa: archivo truncado o tamaño incorrecto\n");
+                                }
                             } else {
-                                printf("ERROR: No se pudo leer el código completo\n");
-                                printf("Posible causa: archivo truncado o tamaño incorrecto\n");
+                                if(tamanio >= MEM) {
+                                    printf("ERROR: Tamaño demasiado grande (%u >= %d)\n", tamanio, MEM);
+                                } else {
+                                    printf("ERROR: El archivo es más pequeño de lo esperado\n");
+                                    printf("Tamaño archivo: %ld, esperado: %ld\n", tamano_archivo, bytes_esperados);
+                                }
                             }
-                        } else {
-                            if(tamanio >= MEM) {
-                                printf("ERROR: Tamaño demasiado grande (%u >= %d)\n", tamanio, MEM);
-                            } else {
-                                printf("ERROR: El archivo es más pequeño de lo esperado\n");
-                                printf("Tamaño archivo: %ld, esperado: %ld\n", tamano_archivo, bytes_esperados);
-                            }
+                        }
+                        else {
+                            printf("ERROR: No se pudo leer el tamaño\n");
                         }
                     }
                     else {
-                        printf("ERROR: No se pudo leer el tamaño\n");
+                        printf("ERROR: Versión incorrecta (esperado: 1, leído: %d)\n", (int)version);
                     }
                 }
                 else {
-                    printf("ERROR: Versión incorrecta (esperado: 1, leído: %d)\n", (int)version);
+                    printf("ERROR: No se pudo leer la versión\n");
                 }
-            }
-            else {
-                printf("ERROR: No se pudo leer la versión\n");
-            }
         
         } else {
             printf("ERROR: No se pudo leer el identificador\n");
@@ -423,7 +438,7 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
         printf("ERROR: No se pudo leer el encabezado correctamente\n");
     }
 }
-void operacion_memoria(uint32_t registros[], uint8_t memoria[], uint32_t direccion, uint32_t valor, uint8_t tipo_operacion, uint8_t cantBytes, infoSegmento tablasegmento[]){
+void operacion_memoria(uint32_t registros[], uint8_t memoria[], uint32_t direccion, int32_t valor, uint8_t tipo_operacion, uint8_t cantBytes, infoSegmento tablasegmento[]){
     //acá se ejecutan las escrituras o lecturas del DS
     int i;
     registros[LAR] = registros[DS] | direccion;
@@ -542,7 +557,7 @@ void leerInstrucciones(uint8_t instruccion, uint8_t memoria[], uint32_t registro
         }
     }
 }
-uint32_t get(uint32_t operando,uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
+int32_t get(uint32_t operando,uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
     // considerar caso de la funcion SYS donde la cantidad de bytes es impredecible
     int tipo_operando = (operando >> 24) & 0x00000003;
     uint8_t cod_reg = (operando >> 16) & 0x000000FF; // en caso de que el operando sea direccion de memoria saco los 5 bits que indicarian un registro
@@ -550,20 +565,20 @@ uint32_t get(uint32_t operando,uint32_t registros[], uint8_t memoria[],infoSegme
     uint16_t direccion = registros[cod_reg] + (int16_t)(operando & 0x0000FFFF);//le saco el codigo de registro al operando y hago el casteo por si el offset es negativo
 
     if (tipo_operando == 0x01)
-        return registros[operando];
+        return (int32_t)registros[operando];
     else if (tipo_operando == 0x02) {//inmediato, puede ser negativo
             if (operando & 0x8000) {
                 // es un número negativo
                 // extender el signo a 32 bits para que sea compatible con el retorno sin alterar el valor original
                 return operando | 0xFFFF0000;
             }
-            return operando;
+            return (int32_t)operando;
         }
     else {
         //el operando es direccion de memoria
 
         operacion_memoria(registros, memoria, direccion, 0, LECTURA, 4, tablaSegmentos); //4 bytes porque es el tamaño de cada celda
-        return registros[MBR];
+        return (int32_t)registros[MBR];
     }
 }
 void set(uint32_t registros[], uint8_t memoria[], uint32_t operando1, int32_t operando2,infoSegmento tablaSegmentos[]){
@@ -582,7 +597,7 @@ void set(uint32_t registros[], uint8_t memoria[], uint32_t operando1, int32_t op
         operacion_memoria(registros, memoria, direccion, operando2, ESCRITURA, 4,tablaSegmentos);
     }
 }
-
+/*
 void ejecucion(uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint8_t memoria[MEM]){
     //falta evaluar la cantidad de argumentos para saber cual de los dos vectores de punteros a funciones utilizar
     uint8_t instruccion;
@@ -597,6 +612,29 @@ void ejecucion(uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint8_t m
        leerInstrucciones(memoria[registros[IP]], memoria, registros, tablaSegmento);
     }
 
+}
+*/
+
+void ejecucion(uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint8_t memoria[MEM]){
+    registros[IP] = registros[CS];
+    
+    printf("DEBUG: Iniciando ejecución con IP=%u\n", registros[IP]);
+    printf("DEBUG: Segmento código: base=%u, tamaño=%u\n", 
+           tablaSegmento[0].base, tablaSegmento[0].tamanio);
+    
+    int contador = 0; // para evitar bucles infinitos durante debug
+    
+    leerInstrucciones(memoria[registros[IP]], memoria, registros, tablaSegmento);
+    while (registros[IP] != 0xFFFFFFFF && contador < 1000) {
+        contador++;
+        printf("DEBUG: Ejecutando instrucción #%d, IP=%u\n", contador, registros[IP]);
+        
+        leerInstrucciones(memoria[registros[IP]], memoria, registros, tablaSegmento);
+    }
+    
+    if(contador >= 1000) {
+        printf("DEBUG: Detenido por límite de iteraciones\n");
+    }
 }
 
 void actualizarCC(uint32_t registros[],int32_t resultado){
