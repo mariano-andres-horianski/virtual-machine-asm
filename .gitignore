@@ -1,3 +1,6 @@
 .qodo/
 ejecutables/
 .vscode/
+*.vmx
+*.exe
+*.o
