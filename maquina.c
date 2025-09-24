@@ -136,7 +136,7 @@ void SYS(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
                 //llamamos a operacion memoria y no a set para no escribir exclusivamente 4 bytes de golpe
                 operacion_memoria(registros,memoria,registros[EDX]+i*cantBytes+j, byteActual, ESCRITURA, 1, tablaSegmentos);
             }
-            printf("[%04x] %04x",registros[EDX]+i*cantBytes, registros[MBR] & 0xFF);
+            printf("[%04x]: %04x",registros[EDX]+i*cantBytes, registros[MBR] & 0xFF);
             switch (modo_lectura){
                 case 0x10:
                     //muestro en hexa la direccion
@@ -164,44 +164,44 @@ void SYS(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
                     break;
             }
         }
-
+        printf("\n");
     }
     else if(get(registros[OP1],registros,memoria,tablaSegmentos) == 0x2){ //escribe en pantalla
-        valor = 0;
         for(i = 0; i<cantCeldas; i++){
+            valor = 0;
             for(j = 0; j < cantBytes; j++){
                 operacion_memoria(registros,memoria,registros[EDX]+i*cantBytes+j, 0, LECTURA, 1, tablaSegmentos);
                 byteActual = registros[MBR];
                 valor = valor | (byteActual << ((cantBytes - 1 - j) * 8));
             }
-            switch (modo_lectura){
-                case 0x10:
-                    //muestro en hexa la direccion
-                    for(b = 0; b < cantBytes; b++){
-                        printf("%d ",valor >> ((cantBytes - 1 - b) * 8) & 0x01);//muestro el valor en binario
-                    }
-                    printf("\n");
-                    break;
-
-                case 0x08:
-                    printf("%x\n",valor);
-                    break;
-                case 0x04:
-                    printf("%llo\n",valor);
-                    break;
-                case 0x02:
-                    printf("%lc\n",valor);
-                    for(caracter = 0; caracter < cantBytes; caracter++){
-                        printf("%c",valor >> ((cantBytes - 1 - caracter) * 8) & 0xFF);
-                        printf("\n");
-                    }
-                    break;
-                case 0x01:
-                    printf("%lld\n",valor);
-                    break;
+            printf("[%04x]: ",registros[EDX]+i*cantBytes);
+            if((modo_lectura & 0x10) != 0){
+                for(b = 0; b < cantBytes; b++){
+                    printf("%d ",valor >> ((cantBytes - 1 - b) * 8) & 0x01);//muestro el valor en binario
+                }
+                printf(" ");
             }
+            if((modo_lectura & 0x08) != 0){
+                printf("%x",valor);
+                printf(" ");
+            }
+            if((modo_lectura & 0x04) != 0){
+                printf("%llo",valor);
+                printf(" ");
+            }
+            if((modo_lectura & 0x02) != 0){
+                printf("%lc",valor);
+                for(caracter = 0; caracter < cantBytes; caracter++){
+                    printf("%c",valor >> ((cantBytes - 1 - caracter) * 8) & 0xFF);
+                }
+                printf(" ");
+            }
+            if((modo_lectura & 0x01) != 0){
+                printf("%lld",valor);
+            }
+        printf("\n");
         }
-
+        printf("\n");
     }
 }
 void RND(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
