@@ -117,7 +117,7 @@ void disassembler(uint8_t memoria[], infoSegmento tablaSegmentos[], uint32_t tam
 }
 
 void SYS(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
-    //falta leer eax para determinar el formato de lectura
+    
     uint16_t cantBytes = (registros[ECX] >> 16) & 0x0000FFFF;
     uint16_t cantCeldas = (registros[ECX]) & 0x0000FFFF;
     uint8_t modo_lectura = registros[EAX],byteActual;
@@ -138,20 +138,24 @@ void SYS(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
             }
             printf("[%04x]: ",registros[EDX]+i*cantBytes);
             if((modo_lectura & 0x10) != 0){
+                // binario
                 for(b = 0; b < cantBytes; b++){
-                    printf("%d ",valor >> ((cantBytes - 1 - b) * 8) & 0x01);//muestro el valor en binario
+                    printf("%d ",valor >> ((cantBytes - 1 - b) * 8) & 0x01);
                 }
                 printf(" ");
             }
             if((modo_lectura & 0x08) != 0){
+                //hexa
                 printf("%x",valor);
                 printf(" ");
             }
             if((modo_lectura & 0x04) != 0){
+                //octal
                 printf("%llo",valor);
                 printf(" ");
             }
             if((modo_lectura & 0x02) != 0){
+                //caracter
                 printf("%lc",valor);
                 for(caracter = 0; caracter < cantBytes; caracter++){
                     printf("%c",valor >> ((cantBytes - 1 - caracter) * 8) & 0xFF);
@@ -159,6 +163,7 @@ void SYS(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
                 printf(" ");
             }
             if((modo_lectura & 0x01) != 0){
+                //decimal
                 printf("%lld",valor);
             }
         printf("\n");
@@ -596,29 +601,7 @@ void ejecucion(uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint8_t m
     }
 
 }
-/*
-void ejecucion(uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint8_t memoria[MEM]){
-    registros[IP] = registros[CS];
-    
-    printf("DEBUG: Iniciando ejecución con IP=%u\n", registros[IP]);
-    printf("DEBUG: Segmento código: base=%u, tamaño=%u\n", 
-           tablaSegmento[0].base, tablaSegmento[0].tamanio);
-    
-    int contador = 0; // para evitar bucles infinitos durante debug
-    
-    leerInstrucciones(memoria[registros[IP]], memoria, registros, tablaSegmento);
-    while (registros[IP] != 0xFFFFFFFF && contador < 1000) {
-        contador++;
-        printf("DEBUG: Ejecutando instrucción #%d, IP=%u\n", contador, registros[IP]);
-        
-        leerInstrucciones(memoria[registros[IP]], memoria, registros, tablaSegmento);
-    }
-    
-    if(contador >= 1000) {
-        printf("DEBUG: Detenido por límite de iteraciones\n");
-    }
-}
-*/
+
 void actualizarCC(uint32_t registros[],int32_t resultado){
     registros[CC] = 0;
     
