@@ -119,7 +119,7 @@ void disassembler(uint8_t memoria[], infoSegmento tablaSegmentos[], uint32_t tam
 void SYS(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
     
     uint16_t cantBytes = (registros[ECX] >> 16) & 0x0000FFFF;
-    uint16_t cantCeldas = (registros[ECX]) & 0x0000FFFF;
+    uint16_t cantCeldas = (registros[ECX]) & 0x0000FFFF, direccion;
     uint8_t modo_lectura = registros[EAX],byteActual;
     int64_t valor;
     int i,b,j,caracter;
@@ -136,7 +136,7 @@ void SYS(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
                 //llamamos a operacion memoria y no a set para no escribir exclusivamente 4 bytes de golpe
                 operacion_memoria(registros,memoria,registros[EDX]+i*cantBytes+j, byteActual, ESCRITURA, 1, tablaSegmentos);
             }
-            printf("[%04x]: ",registros[EDX]+i*cantBytes);
+            printf("[%04x]: ",(registros[MAR] & 0x0000FFFF) - cantBytes + 1);
             if((modo_lectura & 0x10) != 0){
                 // binario
                 for(b = 0; b < cantBytes; b++){
@@ -178,7 +178,7 @@ void SYS(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
                 byteActual = registros[MBR];
                 valor = valor | (byteActual << ((cantBytes - 1 - j) * 8));
             }
-            printf("[%04x]: ",registros[EDX]+i*cantBytes);
+            printf("[%04x]: ",(registros[MAR] & 0x0000FFFF) - cantBytes + 1);
             if((modo_lectura & 0x10) != 0){
                 for(b = 0; b < cantBytes; b++){
                     printf("%d ",valor >> ((cantBytes - 1 - b) * 8) & 0x01);//muestro el valor en binario
