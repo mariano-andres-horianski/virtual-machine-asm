@@ -275,6 +275,32 @@ void DIV(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
         STOP(registros,memoria,tablaSegmentos);
     }
 }
+/*
+//version alternativa del div con otra division
+//la anterior tenia un problema en el codigo de la pregunta 5 del cuestionario, donde almacenaba 0 pero debia almacenar -1 que era el cociente
+void DIV(uint32_t registros[], uint8_t memoria[], infoSegmento tablaSegmentos[]) {
+    int32_t dividendo = get(registros[OP1], registros, memoria, tablaSegmentos);
+    int32_t divisor = get(registros[OP2], registros, memoria, tablaSegmentos);
+    
+    if (divisor != 0) {
+        int32_t cociente = dividendo / divisor;
+        int32_t resto = dividendo % divisor;
+
+        //chequeo que se hace si el signo del divisor y dividendo difieren
+        if ((resto != 0) && ((dividendo < 0) != (divisor < 0))) {
+            cociente--;
+        }
+        resto = dividendo - (cociente * divisor);
+
+        actualizarCC(registros, cociente);
+        registros[AC] = resto;
+        set(registros, memoria, registros[OP1], cociente, tablaSegmentos);
+    } else {
+        printf("ERROR: division por cero\n");
+        STOP(registros, memoria, tablaSegmentos);
+    }
+}
+*/
 void CMP(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
     int resultado;
     resultado = get(registros[OP1],registros,memoria,tablaSegmentos) - get(registros[OP2],registros,memoria,tablaSegmentos);
@@ -283,14 +309,14 @@ void CMP(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
 //Los shifts en C serán lógicos porque siempre trabajamos con unsigned
 void SHL(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
     int resultado;
-    resultado = (get(registros[OP1],registros,memoria,tablaSegmentos) << get(registros[OP2],registros,memoria,tablaSegmentos));
+    resultado = ((uint32_t)(get(registros[OP1],registros,memoria,tablaSegmentos)) << get(registros[OP2],registros,memoria,tablaSegmentos));
     //printf("SHL: %d = %d << %d\n",resultado,get(registros[OP1],registros,memoria,tablaSegmentos),get(registros[OP2],registros,memoria,tablaSegmentos));
     actualizarCC(registros,resultado);
     set(registros,memoria,registros[OP1],resultado,tablaSegmentos);
 }
 void SHR(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
     int resultado;
-    resultado = (get(registros[OP1],registros,memoria,tablaSegmentos) >> get(registros[OP2],registros,memoria,tablaSegmentos));
+    resultado = ((uint32_t)(get(registros[OP1],registros,memoria,tablaSegmentos)) >> get(registros[OP2],registros,memoria,tablaSegmentos));
     //printf("SHR: %d = %d >> %d\n",resultado,get(registros[OP1],registros,memoria,tablaSegmentos),get(registros[OP2],registros,memoria,tablaSegmentos));
     actualizarCC(registros,resultado);
     set(registros,memoria,registros[OP1],resultado,tablaSegmentos);
@@ -307,7 +333,7 @@ void SAR(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
 void AND(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
     int resultado;
     resultado = get(registros[OP1],registros,memoria,tablaSegmentos) & get(registros[OP2],registros,memoria,tablaSegmentos);
-    //printf("operacion AND: %d = %d & %d\n",resultado,get(registros[OP1],registros,memoria,tablaSegmentos),get(registros[OP2],registros,memoria,tablaSegmentos));
+    printf("operacion AND: %d = %d & %d\n",resultado,get(registros[OP1],registros,memoria,tablaSegmentos),get(registros[OP2],registros,memoria,tablaSegmentos));
     actualizarCC(registros,resultado);
     set(registros,memoria,registros[OP1],resultado,tablaSegmentos);
 }
