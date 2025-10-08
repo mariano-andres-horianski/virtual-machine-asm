@@ -174,6 +174,7 @@ void SYS(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
         for(i = 0; i<cantCeldas; i++){
             valor = 0;
             for(j = 0; j < cantBytes; j++){
+                //escribimos byte a byte, pasamos 0 en el valor para asegurarnos que el MBR va a estar limpio
                 operacion_memoria(registros,memoria,registros[EDX]+i*cantBytes+j, 0, LECTURA, 1, tablaSegmentos);
                 byteActual = registros[MBR];
                 valor = valor | (byteActual << ((cantBytes - 1 - j) * 8));
@@ -186,22 +187,22 @@ void SYS(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
                 printf(" ");
             }
             if((modo_lectura & 0x08) != 0){
-                printf("%x",valor);
+                printf("0x%x",valor);
                 printf(" ");
             }
             if((modo_lectura & 0x04) != 0){
-                printf("%llo",valor);
+                printf("%o",valor);
                 printf(" ");
             }
             if((modo_lectura & 0x02) != 0){
-                printf("%lc",valor);
+                printf("%c",valor);
                 for(caracter = 0; caracter < cantBytes; caracter++){
                     printf("%c",valor >> ((cantBytes - 1 - caracter) * 8) & 0xFF);
                 }
                 printf(" ");
             }
             if((modo_lectura & 0x01) != 0){
-                printf("%lld",valor);
+                printf("%d",valor);
             }
         printf("\n");
         }
@@ -218,7 +219,7 @@ void JMP(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
 }
 
 void JZ(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
-    if((registros[CC] & 0x01) == 1)
+    if((registros[CC] & (0x01<<30)) == (1<<30))
         registros[IP] = registros[OP1] & 0x0000FFFF;
 }
 void JP(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
@@ -226,19 +227,19 @@ void JP(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
         registros[IP] = registros[OP1] & 0x0000FFFF;
 }
 void JN(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
-    if((registros[CC] & 0x02) == 2)
+    if((registros[CC] & (0x02<<30)) == (2<<30))
         registros[IP] = registros[OP1] & 0x0000FFFF;
 }
 void JNZ(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
-    if((registros[CC] & 0x01) == 0)
+    if((registros[CC] & (0x01<<30)) == 0)
         registros[IP] = registros[OP1] & 0x0000FFFF;
 }
 void JNP(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
-    if((registros[CC] & 0x03) == 2 || (registros[CC] & 0x03) == 1)
+    if((registros[CC] & (0x03<<30)) == (2<<30) || (registros[CC] & 0x03) == (1<<30))
         registros[IP] = registros[OP1] & 0x0000FFFF;
 }
 void JNN(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
-    if((registros[CC] & 0x02) < 2)
+    if((registros[CC] & (0x02<<30)) < (2<<30))
         registros[IP] = registros[OP1] & 0x0000FFFF;
 }
 
@@ -251,6 +252,7 @@ void ADD(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
 void SUB(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
     int32_t resultado;
     resultado = get(registros[OP1],registros,memoria,tablaSegmentos) - get(registros[OP2],registros,memoria,tablaSegmentos);
+    //printf("operacion SUB: %d = %d - %d\n",resultado,get(registros[OP1],registros,memoria,tablaSegmentos),get(registros[OP2],registros,memoria,tablaSegmentos));
     actualizarCC(registros,resultado);
     set(registros,memoria,registros[OP1],resultado,tablaSegmentos);
 }
@@ -282,12 +284,14 @@ void CMP(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
 void SHL(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
     int resultado;
     resultado = (get(registros[OP1],registros,memoria,tablaSegmentos) << get(registros[OP2],registros,memoria,tablaSegmentos));
+    //printf("SHL: %d = %d << %d\n",resultado,get(registros[OP1],registros,memoria,tablaSegmentos),get(registros[OP2],registros,memoria,tablaSegmentos));
     actualizarCC(registros,resultado);
     set(registros,memoria,registros[OP1],resultado,tablaSegmentos);
 }
 void SHR(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
     int resultado;
     resultado = (get(registros[OP1],registros,memoria,tablaSegmentos) >> get(registros[OP2],registros,memoria,tablaSegmentos));
+    //printf("SHR: %d = %d >> %d\n",resultado,get(registros[OP1],registros,memoria,tablaSegmentos),get(registros[OP2],registros,memoria,tablaSegmentos));
     actualizarCC(registros,resultado);
     set(registros,memoria,registros[OP1],resultado,tablaSegmentos);
 }
@@ -303,6 +307,7 @@ void SAR(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
 void AND(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
     int resultado;
     resultado = get(registros[OP1],registros,memoria,tablaSegmentos) & get(registros[OP2],registros,memoria,tablaSegmentos);
+    //printf("operacion AND: %d = %d & %d\n",resultado,get(registros[OP1],registros,memoria,tablaSegmentos),get(registros[OP2],registros,memoria,tablaSegmentos));
     actualizarCC(registros,resultado);
     set(registros,memoria,registros[OP1],resultado,tablaSegmentos);
 }
@@ -431,6 +436,19 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
         printf("ERROR: No se pudo leer el encabezado correctamente\n");
     }
 }
+void debug_memoria(uint8_t memoria[], uint32_t direccion, int cantBytes) {
+    printf("Memoria en [%04x]: ", direccion);
+    int i;
+    for (i = 0; i < cantBytes; i++) {
+        printf("%02x ", memoria[direccion + i]);
+    }
+    printf("\n");
+}
+
+void debug_registros(uint32_t registros[]) {
+    printf("Registros clave: IP=%08x, MBR=%08x, MAR=%08x, LAR=%08x\n", 
+           registros[IP], registros[MBR], registros[MAR], registros[LAR]);
+}
 void operacion_memoria(uint32_t registros[], uint8_t memoria[], uint32_t direccion, int32_t valor, uint8_t tipo_operacion, uint8_t cantBytes, infoSegmento tablasegmento[]){
     //acá se ejecutan las escrituras o lecturas del DS
     int i;
@@ -453,6 +471,7 @@ void operacion_memoria(uint32_t registros[], uint8_t memoria[], uint32_t direcci
             registros[MBR] = registros[MBR] | (memoria[(registros[MAR] & 0x0000FFFF) + i] << (8 * (cantBytes - 1 - i)));
         }
     }
+    
 }
 
 void calcDirFisica(infoSegmento tablaSegmento[ENT],uint32_t registros[],int cantBytes){
@@ -553,7 +572,7 @@ void leerInstrucciones(uint8_t instruccion, uint8_t memoria[], uint32_t registro
 int32_t get(uint32_t operando,uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
     // considerar caso de la funcion SYS donde la cantidad de bytes es impredecible
     int tipo_operando = (operando >> 24) & 0x00000003;
-    uint8_t cod_reg = (operando >> 16) & 0x000000FF; // en caso de que el operando sea direccion de memoria saco los 5 bits que indicarian un registro
+    uint8_t cod_reg = (operando >> 16) & 0x0000001F; // en caso de que el operando sea direccion de memoria saco los 5 bits que indicarian un registro
     operando = operando & 0x0000FFFF;
     uint16_t direccion = registros[cod_reg] + (int16_t)(operando & 0x0000FFFF);//le saco el codigo de registro al operando y hago el casteo por si el offset es negativo
 
@@ -578,15 +597,13 @@ void set(uint32_t registros[], uint8_t memoria[], uint32_t operando1, int32_t op
     //operando 2 será inmediato siempre en esta función, pues se la llamará con el argumento get()
     int tipo_operando1 = (operando1 >> 24) & 0x00000003;
     uint32_t direccion;
-    uint16_t offset;
-    uint8_t cod_reg = (operando1 >> 16) & 0x000000FF;
+    uint8_t cod_reg = (operando1 >> 16) & 0x0000001F;
     operando1 = operando1 & 0x00FFFFFF;
 
     if (tipo_operando1 == 1)
         registros[operando1] = operando2;
     else{
-        offset = operando1 & 0x0000FFFF;
-        direccion = registros[cod_reg] + offset;
+        direccion = registros[cod_reg] +(int16_t) operando1 & 0x0000FFFF;
         operacion_memoria(registros, memoria, direccion, operando2, ESCRITURA, 4,tablaSegmentos);
     }
 }
@@ -606,7 +623,8 @@ void actualizarCC(uint32_t registros[],int32_t resultado){
     registros[CC] = 0;
     
     if(resultado < 0)
-        registros[CC] = registros[CC] | 0x02;
+        registros[CC] = registros[CC] | (0x02 << 30);
     if(resultado == 0)
-        registros[CC] = registros[CC] | 0x01;
+        registros[CC] = registros[CC] | (0x01 << 30);
+    //printf("CC actualizado: %d\n",registros[CC]);
 }

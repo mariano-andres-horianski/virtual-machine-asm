@@ -21,7 +21,8 @@ typedef struct {
     unsigned short base;
     unsigned short tamanio; } infoSegmento;              //unsigned short tiene exact. 2 bytes
 
-
+void debug_memoria(uint8_t memoria[], uint32_t direccion, int cantBytes);
+void debug_registros(uint32_t registros[]);
 void inicioRegistro(uint32_t reg[]);
 void inicioTablaSegmento(infoSegmento tabla[],uint16_t tamanio);
 void leerEncabezado(char nombre[],uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint8_t memoria[MEM], int *resultado);
