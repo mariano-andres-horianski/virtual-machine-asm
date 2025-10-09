@@ -637,9 +637,11 @@ void set(uint32_t registros[], uint8_t memoria[], uint32_t operando1, int32_t op
 void ejecucion(uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint8_t memoria[MEM]){
 
     registros[IP] = registros[CS];
-    uint16_t tamanioCodigo = tablaSegmento[0].tamanio; //esto funciona por ahora porque el CS es 0
+    uint16_t base = tablaSegmento[registros[CS]].base;
+    uint16_t tamanio = tablaSegmento[registros[CS]].tamanio;
+    
     leerInstrucciones(memoria[registros[IP]], memoria, registros, tablaSegmento);
-    while (registros[IP] != 0xFFFFFFFF && registros[IP] < tamanioCodigo){
+    while (registros[IP] != 0xFFFFFFFF && registros[IP] < base+tamanio ){
        leerInstrucciones(memoria[registros[IP]], memoria, registros, tablaSegmento);
     }
 
