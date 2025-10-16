@@ -384,10 +384,8 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
     FILE *arch;
     char ident[6];
     char version;
-    long bytes_esperados, pos_actual;
-    size_t bytes_leidos;
-    uint16_t tamanio = 0;
-    uint8_t byte_alto, byte_bajo;
+    uint16_t tamanio = 0, base;
+    uint8_t byte_count,byte_aux;
     
     *resultado = 0;
     
@@ -406,44 +404,28 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
             ident[5]='\0';
             if(strcmp(ident,"VMX25") == 0)
                 if(fread(&version, sizeof(char), 1, arch) == 1){
-                    if(version == 1){
+                    if(version == 2){
                         // leer tamaño byte por byte (big-endian)
-                        // si lo leés normalmente, al ser AMD o Intel little endian no va a funcionar
-                        if(fread(&byte_alto, 1, 1, arch) == 1 && fread(&byte_bajo, 1, 1, arch) == 1){
-                            tamanio = (byte_alto << 8) | byte_bajo;
-                            
-                            bytes_esperados = 5 + 1 + 2 + tamanio; // ident + version + tamanio + codigo
-                            if(tamanio < MEM && bytes_esperados <= tamano_archivo){
-                                pos_actual = ftell(arch);
-                                bytes_leidos = fread(memoria, sizeof(uint8_t), tamanio, arch);
-                                
-                                if(bytes_leidos == tamanio){
-                                    
-                                    inicioRegistro(registros);
-                                    inicioTablaSegmento(tablaSegmento, tamanio);
-                                    *resultado = 1;
-                                    
-                                } else {
-                                    printf("ERROR: No se pudo leer el código completo\n");
-                                    printf("Posible causa: archivo truncado o tamaño incorrecto\n");
-                                }
-                            } else {
-                                if(tamanio >= MEM) {
-                                    printf("ERROR: Tamaño demasiado grande (%u >= %d)\n", tamanio, MEM);
-                                } else {
-                                    printf("ERROR: El archivo es más pequeño de lo esperado\n");
-                                    printf("Tamaño archivo: %ld, esperado: %ld\n", tamano_archivo, bytes_esperados);
-                                }
+                        byte_count = 1;
+                        base = 0;
+                        while (byte_count<=10 && fread(&byte_aux, 1, 1, arch) == 1){
+                            tablaSegmento[byte_count/2].base = base;
+                            registros[26 + byte_count/2] = base;
+                            tablaSegmento[byte_count/2].tamanio = (tablaSegmento[byte_count/2].tamanio << 8) | byte_aux;
+                            byte_count++;
+                            if(byte_count%2 == 0){
+                                base += tablaSegmento[byte_count/2].tamanio;
                             }
                         }
-                        else {
-                            printf("ERROR: No se pudo leer el tamaño\n");
-                        }
+                        //queda por leer offset del entry point
+                        //queda por asignar el param segment
                     }
-                    else {
-                        printf("ERROR: Versión incorrecta (esperado: 1, leído: %d)\n", (int)version);
-                    }
+                        
                 }
+                else {
+                    printf("ERROR: Versión incorrecta (esperado: 1, leído: %d)\n", (int)version);
+                }
+        }
                 else {
                     printf("ERROR: No se pudo leer la versión\n");
                 }
