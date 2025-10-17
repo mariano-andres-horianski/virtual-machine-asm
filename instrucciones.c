@@ -259,6 +259,19 @@ void MOV(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
     set(registros,memoria,registros[OP1],get(registros[OP2], registros, memoria,tablaSegmentos),tablaSegmentos);
 }
 
+void PUSH(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
+    uint32_t valor_operando;
+    registros[SP] = registros[SP] - 4;
+    if(registros[SP] < registros[SS]){
+        printf("ERROR: Stack Overflow\n");
+        STOP(registros,memoria,tablaSegmentos);
+    }
+    else{
+        valor_operando = get(registros[OP1],registros,memoria,tablaSegmentos);
+        set(registros,memoria,registros[SP],get(registros[OP1],registros,memoria,tablaSegmentos),tablaSegmentos);
+        
+    }
+}
 void NO_ACCESIBLE(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
     printf("INSTRUCCION INVALIDA: codigo de operacion de la instruccion a ejecutar no existe\n");  // detecta uno de los 3 errores que se deben tener en cuenta segun requisitos
 }

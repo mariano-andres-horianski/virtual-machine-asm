@@ -11,34 +11,7 @@ void inicioTablaSegmento(infoSegmento tabla[],uint16_t tamanioCod){
     tabla[1].base = tamanioCod;
     tabla[1].tamanio = MEM - tamanioCod;
 }
-const char *mnemonicos[32] = { //arreglo de string, estan en orden para que coincidan los indices
-    "SYS", "JMP", "JZ", "JP", "JN", "JNZ", "JNP", "JNN", "NOT",
-    "XXX", "XXX", "XXX", "XXX", "XXX", "XXX", //no hay mnemonicos para 0x09, 0x0A, ... 0x0F
-    "STOP", "MOV", "ADD", "SUB", "MUL", "DIV", "CMP", "SHL",
-    "SHR", "SAR", "AND", "OR", "XOR", "SWAP", "LDL", "LDH", "RND"
-};
 
-const char *nombresRegistros[REG] = {
-    [LAR] = "LAR",
-    [MAR] = "MAR",
-    [MBR] = "MBR",
-    [IP]  = "IP",
-    [OPC] = "OPC",
-    [OP1] = "OP1",
-    [OP2] = "OP2",
-
-    [EAX] = "EAX",
-    [EBX] = "EBX",
-    [ECX] = "ECX",
-    [EDX] = "EDX",
-    [EEX] = "EEX",
-    [EFX] = "EFX",
-    [AC]  = "AC",
-    [CC]  = "CC",
-
-    [CS]  = "CS",
-    [DS]  = "DS"
-};
 
 // Las posiciones no inicializadas automáticamente quedan como NULL
 void (*instrucciones[32])(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]) =
@@ -51,334 +24,6 @@ static void mostrarHexa(uint8_t instruccion[], uint8_t inicio, uint8_t fin) {
     }
 }
 
-// recorrer memoria
-void disassembler(uint8_t memoria[], infoSegmento tablaSegmentos[], uint32_t tamMemoria, uint32_t registros[]) {
-    uint32_t dirFisica, operando1, operando2, PC = tablaSegmentos[registros[CS]].base;
-    uint8_t instruccion[6],N,tipo1,tipo2,ini1;
-    int i;
-    while (PC < tablaSegmentos[registros[CS]].base + tablaSegmentos[registros[CS]].tamanio) {
-        dirFisica = PC;
-        printf("dirFisica: %d",dirFisica);
-        i=0;
-        N=0;
-        instruccion[i] = memoria[PC];
-        tipo1=(instruccion[i]>>4)&0x03;
-        tipo2=instruccion[i]>>6;
-        N=1+tipo1+tipo2; //size de la instruccion
-        for (i=1;i<N;i++){
-            PC++;
-            instruccion[i]=memoria[PC];
-        }
-
-        //calcular direccion fisica?
-        printf("[%04X] ", dirFisica);
-        mostrarHexa(instruccion, 0, N);
-
-        // Completar con espacios para alinear
-        for (i = N; i<8; i++)
-            printf("    ");
-
-        // Mostrar mnemonico
-        instruccion[0]=instruccion[0]&0x1F;
-        printf(" |  %s", mnemonicos[instruccion[0]]);
-
-        operando2=0;
-        operando1=0;
-        for (i=1; i<=tipo2; i++){
-            operando2=operando2<<8;
-            operando2=operando2|instruccion[i];
-        }
-        ini1=tipo2+1;
-        for (i=ini1; i<N; i++){
-            operando1=operando1<<8;
-            operando1=operando1|instruccion[i];
-        }
-
-        // Mostrar operandos
-        if (tipo1==3)
-            printf("    [%s + %u]",nombresRegistros[(operando1&0x00FF0000)>>16],operando1&0x0000FFFF);
-        else
-            if (tipo1==1)
-                printf("    %s",nombresRegistros[operando1]); //el tipo del operando 1 nunca puede ser 2 (inmediato)
-
-        if (tipo2==3)
-            printf("    [%s + %u]",nombresRegistros[(operando2&0x00FF0000)>>16],operando2&0x0000FFFF);
-        else
-            if (tipo2==2)
-                printf("    %d",(int16_t)operando2);
-            else
-                if (tipo2==1)
-                    printf("    %s",nombresRegistros[operando2]);
-
-
-        printf("\n");
-        PC++;
-    }
-}
-
-void SYS(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
-    
-    uint16_t cantBytes = (registros[ECX] >> 16) & 0x0000FFFF;
-    uint16_t cantCeldas = (registros[ECX]) & 0x0000FFFF, direccion;
-    uint8_t modo_lectura = registros[EAX],byteActual;
-    int64_t valor;
-    int i,b,j,caracter;
-    if(get(registros[OP1],registros,memoria,tablaSegmentos) == 0x1){ //lectura
-        //guarda en memoria
-        for(i = 0; i<cantCeldas; i++){
-            if(scanf("%lld", &valor) != 1) {
-                printf("ERROR: Entrada inválida\n");
-                STOP(registros, memoria, tablaSegmentos);
-                return;
-            }
-            for(j = 0; j < cantBytes; j++){
-                byteActual =  (valor >> ((cantBytes - 1 - j) * 8)) & 0xFF;
-                //llamamos a operacion memoria y no a set para no escribir exclusivamente 4 bytes de golpe
-                operacion_memoria(registros,memoria,registros[EDX]+i*cantBytes+j, byteActual, ESCRITURA, 1, tablaSegmentos);
-            }
-            printf("[%04x]: ",(registros[MAR] & 0x0000FFFF) - cantBytes + 1);
-            if((modo_lectura & 0x10) != 0){
-                // binario
-                for(b = 0; b < cantBytes; b++){
-                    printf("%d ",valor >> ((cantBytes - 1 - b) * 8) & 0x01);
-                }
-                printf(" ");
-            }
-            if((modo_lectura & 0x08) != 0){
-                //hexa
-                printf("%x",valor);
-                printf(" ");
-            }
-            if((modo_lectura & 0x04) != 0){
-                //octal
-                printf("%llo",valor);
-                printf(" ");
-            }
-            if((modo_lectura & 0x02) != 0){
-                //caracter
-                printf("%lc",valor);
-                for(caracter = 0; caracter < cantBytes; caracter++){
-                    printf("%c",valor >> ((cantBytes - 1 - caracter) * 8) & 0xFF);
-                }
-                printf(" ");
-            }
-            if((modo_lectura & 0x01) != 0){
-                //decimal
-                printf("%lld",valor);
-            }
-        printf("\n");
-        }
-        printf("\n");
-    }
-    else if(get(registros[OP1],registros,memoria,tablaSegmentos) == 0x2){ //escribe en pantalla
-        for(i = 0; i<cantCeldas; i++){
-            valor = 0;
-            for(j = 0; j < cantBytes; j++){
-                //escribimos byte a byte, pasamos 0 en el valor para asegurarnos que el MBR va a estar limpio
-                operacion_memoria(registros,memoria,registros[EDX]+i*cantBytes+j, 0, LECTURA, 1, tablaSegmentos);
-                byteActual = registros[MBR];
-                valor = valor | (byteActual << ((cantBytes - 1 - j) * 8));
-            }
-            printf("[%04x]: ",(registros[MAR] & 0x0000FFFF) - cantBytes + 1);
-            if((modo_lectura & 0x10) != 0){
-                for(b = 0; b < cantBytes; b++){
-                    printf("%d ",valor >> ((cantBytes - 1 - b) * 8) & 0x01);//muestro el valor en binario
-                }
-                printf(" ");
-            }
-            if((modo_lectura & 0x08) != 0){
-                printf("0x%x",valor);
-                printf(" ");
-            }
-            if((modo_lectura & 0x04) != 0){
-                printf("%o",valor);
-                printf(" ");
-            }
-            if((modo_lectura & 0x02) != 0){
-                printf("%c",valor);
-                for(caracter = 0; caracter < cantBytes; caracter++){
-                    printf("%c",valor >> ((cantBytes - 1 - caracter) * 8) & 0xFF);
-                }
-                printf(" ");
-            }
-            if((modo_lectura & 0x01) != 0){
-                printf("%d",valor);
-            }
-        printf("\n");
-        }
-        printf("\n");
-    }
-}
-void RND(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
-    srand(time(NULL));
-
-    set(registros,memoria,registros[OP1], rand() % (get(registros[OP2], registros, memoria,tablaSegmentos) + 1),tablaSegmentos);
-}
-void JMP(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
-    registros[IP] = registros[OP1] & 0x0000FFFF;
-}
-
-void JZ(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
-    if((registros[CC] & (0x01<<30)) == (1<<30))
-        registros[IP] = registros[OP1] & 0x0000FFFF;
-}
-void JP(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
-    if(registros[CC] == 0)
-        registros[IP] = registros[OP1] & 0x0000FFFF;
-}
-void JN(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
-    if((registros[CC] & (0x02<<30)) == (2<<30))
-        registros[IP] = registros[OP1] & 0x0000FFFF;
-}
-void JNZ(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
-    if((registros[CC] & (0x01<<30)) == 0)
-        registros[IP] = registros[OP1] & 0x0000FFFF;
-}
-void JNP(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
-    if((registros[CC] & (0x03<<30)) == (2<<30) || (registros[CC] & 0x03) == (1<<30))
-        registros[IP] = registros[OP1] & 0x0000FFFF;
-}
-void JNN(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
-    if((registros[CC] & (0x02<<30)) < (2<<30))
-        registros[IP] = registros[OP1] & 0x0000FFFF;
-}
-
-void ADD(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
-    int resultado;
-    resultado = (int32_t)get(registros[OP1],registros,memoria,tablaSegmentos) + (int32_t)get(registros[OP2],registros,memoria,tablaSegmentos);
-    actualizarCC(registros,resultado);
-    set(registros,memoria,registros[OP1],resultado,tablaSegmentos);
-}
-void SUB(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
-    int32_t resultado;
-    resultado = get(registros[OP1],registros,memoria,tablaSegmentos) - get(registros[OP2],registros,memoria,tablaSegmentos);
-    //printf("operacion SUB: %d = %d - %d\n",resultado,get(registros[OP1],registros,memoria,tablaSegmentos),get(registros[OP2],registros,memoria,tablaSegmentos));
-    actualizarCC(registros,resultado);
-    set(registros,memoria,registros[OP1],resultado,tablaSegmentos);
-}
-void MUL(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
-    int resultado;
-    resultado = get(registros[OP1],registros,memoria,tablaSegmentos) * get(registros[OP2],registros,memoria,tablaSegmentos);
-    actualizarCC(registros,resultado);
-    set(registros,memoria,registros[OP1],resultado,tablaSegmentos);
-}
-void DIV(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
-    int resultado;
-    if(get(registros[OP2],registros,memoria,tablaSegmentos) != 0){
-        resultado = get(registros[OP1],registros,memoria,tablaSegmentos) / get(registros[OP2],registros,memoria,tablaSegmentos);
-        actualizarCC(registros,resultado);
-        registros[AC] = get(registros[OP1],registros,memoria,tablaSegmentos) % get(registros[OP2],registros,memoria,tablaSegmentos);
-        set(registros,memoria,registros[OP1],resultado,tablaSegmentos);
-    }
-    else{
-        printf("ERROR: division por cero\n"); // detecta uno de los 3 errores que se deben tener en cuenta segun requisitos
-        STOP(registros,memoria,tablaSegmentos);
-    }
-}
-/*
-//version alternativa del div con otra division
-//la anterior tenia un problema en el codigo de la pregunta 5 del cuestionario, donde almacenaba 0 pero debia almacenar -1 que era el cociente
-void DIV(uint32_t registros[], uint8_t memoria[], infoSegmento tablaSegmentos[]) {
-    int32_t dividendo = get(registros[OP1], registros, memoria, tablaSegmentos);
-    int32_t divisor = get(registros[OP2], registros, memoria, tablaSegmentos);
-    
-    if (divisor != 0) {
-        int32_t cociente = dividendo / divisor;
-        int32_t resto = dividendo % divisor;
-
-        //chequeo que se hace si el signo del divisor y dividendo difieren
-        if ((resto != 0) && ((dividendo < 0) != (divisor < 0))) {
-            cociente--;
-        }
-        resto = dividendo - (cociente * divisor);
-
-        actualizarCC(registros, cociente);
-        registros[AC] = resto;
-        set(registros, memoria, registros[OP1], cociente, tablaSegmentos);
-    } else {
-        printf("ERROR: division por cero\n");
-        STOP(registros, memoria, tablaSegmentos);
-    }
-}
-*/
-void CMP(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
-    int resultado;
-    resultado = get(registros[OP1],registros,memoria,tablaSegmentos) - get(registros[OP2],registros,memoria,tablaSegmentos);
-    actualizarCC(registros,resultado);
-}
-//Los shifts en C serán lógicos porque siempre trabajamos con unsigned
-void SHL(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
-    int resultado;
-    resultado = ((uint32_t)(get(registros[OP1],registros,memoria,tablaSegmentos)) << get(registros[OP2],registros,memoria,tablaSegmentos));
-    //printf("SHL: %d = %d << %d\n",resultado,get(registros[OP1],registros,memoria,tablaSegmentos),get(registros[OP2],registros,memoria,tablaSegmentos));
-    actualizarCC(registros,resultado);
-    set(registros,memoria,registros[OP1],resultado,tablaSegmentos);
-}
-void SHR(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
-    int resultado;
-    resultado = ((uint32_t)(get(registros[OP1],registros,memoria,tablaSegmentos)) >> get(registros[OP2],registros,memoria,tablaSegmentos));
-    //printf("SHR: %d = %d >> %d\n",resultado,get(registros[OP1],registros,memoria,tablaSegmentos),get(registros[OP2],registros,memoria,tablaSegmentos));
-    actualizarCC(registros,resultado);
-    set(registros,memoria,registros[OP1],resultado,tablaSegmentos);
-}
-void SAR(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
-    int resultado;
-    if((get(registros[OP1],registros,memoria,tablaSegmentos) & 0x80000000) != 0) // si es neg, el resultado tambien lo sera: agrego unos
-        resultado = get(registros[OP1],registros,memoria,tablaSegmentos) >> get(registros[OP2],registros,memoria,tablaSegmentos) | ~(0xFFFFFFFF >> get(registros[OP2],registros,memoria,tablaSegmentos));
-    else
-        resultado = (get(registros[OP1],registros,memoria,tablaSegmentos) >> get(registros[OP2],registros,memoria,tablaSegmentos)); // si es positivo: agrego ceros
-    actualizarCC(registros,resultado);
-    set(registros,memoria,registros[OP1],resultado,tablaSegmentos);
-}
-void AND(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
-    int resultado;
-    resultado = get(registros[OP1],registros,memoria,tablaSegmentos) & get(registros[OP2],registros,memoria,tablaSegmentos);
-    printf("operacion AND: %d = %d & %d\n",resultado,get(registros[OP1],registros,memoria,tablaSegmentos),get(registros[OP2],registros,memoria,tablaSegmentos));
-    actualizarCC(registros,resultado);
-    set(registros,memoria,registros[OP1],resultado,tablaSegmentos);
-}
-void OR(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
-    int resultado;
-    resultado = get(registros[OP1],registros,memoria,tablaSegmentos) | get(registros[OP2],registros,memoria,tablaSegmentos);
-    actualizarCC(registros,resultado);
-    set(registros,memoria,registros[OP1],resultado,tablaSegmentos);
-}
-void XOR(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
-    int resultado;
-    resultado = get(registros[OP1],registros,memoria,tablaSegmentos) ^ get(registros[OP2],registros,memoria,tablaSegmentos);
-    actualizarCC(registros,resultado);
-    set(registros,memoria,registros[OP1],resultado,tablaSegmentos);
-}
-void SWAP(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
-    int aux = get(registros[OP1],registros,memoria,tablaSegmentos);
-    set(registros,memoria, registros[OP1],get(registros[OP2],registros,memoria,tablaSegmentos),tablaSegmentos);
-    set(registros,memoria, registros[OP2],aux,tablaSegmentos);
-}
-void LDL(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
-    int resultado;
-    resultado = (get(registros[OP2],registros,memoria,tablaSegmentos) & 0x0000FFFF) | (get(registros[OP1],registros,memoria,tablaSegmentos) & 0xFFFF0000);
-    set(registros,memoria,registros[OP1],resultado,tablaSegmentos);
-}
-void LDH(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
-    int resultado;
-    resultado = ((get(registros[OP2],registros,memoria,tablaSegmentos) << 16) & 0xFFFF0000) | (get(registros[OP1],registros,memoria,tablaSegmentos) & 0x0000FFFF);
-    set(registros,memoria,registros[OP1],resultado,tablaSegmentos);
-}
-void NOT(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
-    int resultado;
-    resultado = ~get(registros[OP1],registros,memoria,tablaSegmentos);
-    set(registros,memoria,registros[OP1],resultado,tablaSegmentos);
-}
-void STOP(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
-    registros[IP] = 0xFFFFFFFF;
-}
-void MOV(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
-    set(registros,memoria,registros[OP1],get(registros[OP2], registros, memoria,tablaSegmentos),tablaSegmentos);
-}
-
-void NO_ACCESIBLE(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
-    printf("INSTRUCCION INVALIDA: codigo de operacion de la instruccion a ejecutar no existe\n");  // detecta uno de los 3 errores que se deben tener en cuenta segun requisitos
-}
 
 void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSegmento[ENT], uint8_t memoria[MEM], int *resultado, uint8_t *num_segmentos){
     FILE *arch;
@@ -416,7 +61,7 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
                                     if(tamanio!=0){
                                         tablaSegmento[*num_segmentos].tamanio = tamanio;
                                         *num_segmentos += 1;
-                                        registros[26 + i/2] = base;
+                                        registros[26 + i/2] = (*num_segmentos) << 16; 
                                     }
                                     else{
                                         registros[26 + i/2] = 0xFFFFFFFF;
@@ -462,10 +107,10 @@ void debug_registros(uint32_t registros[]) {
     printf("Registros clave: IP=%08x, MBR=%08x, MAR=%08x, LAR=%08x\n", 
            registros[IP], registros[MBR], registros[MAR], registros[LAR]);
 }
-void operacion_memoria(uint32_t registros[], uint8_t memoria[], uint32_t direccion, int32_t valor, uint8_t tipo_operacion, uint8_t cantBytes, infoSegmento tablasegmento[]){
+void operacion_memoria(uint32_t registros[], uint8_t memoria[], uint32_t direccion, int32_t valor, uint8_t tipo_operacion, uint8_t cantBytes, infoSegmento tablasegmento[], uint32_t segmento){
     //acá se ejecutan las escrituras o lecturas del DS
     int i;
-    registros[LAR] = registros[DS] | direccion;
+    registros[LAR] = segmento | direccion;
     registros[MBR] = valor;
     calcDirFisica(tablasegmento,registros,cantBytes);
     if(registros[IP] == 0xFFFFFFFF) {
@@ -478,7 +123,7 @@ void operacion_memoria(uint32_t registros[], uint8_t memoria[], uint32_t direcci
             memoria[(registros[MAR] & 0x0000FFFF) + i] = (registros[MBR] >> (8 * (cantBytes - 1 - i))) & 0x000000FF;
         }
     }
-    else{
+    else{//tipo_operacion == LECTURA
         //se llama acá con 0 en el argumento 'valor' por lo tanto el MBR tiene 0
         for(i = 0; i < cantBytes; i++){
             registros[MBR] = registros[MBR] | (memoria[(registros[MAR] & 0x0000FFFF) + i] << (8 * (cantBytes - 1 - i)));
@@ -503,7 +148,15 @@ void calcDirFisica(infoSegmento tablaSegmento[ENT],uint32_t registros[],int cant
         return;
     }
 }
+uint32_t get_segmento_registro(uint32_t operando,uint32_t registros[]){
+    uint8_t registro = operando & 0x1F;
+    uint8_t segmento_registro = (operando >> 6) & 0x3;
 
+    return registros[registro] >> (4-segmento_registro);
+}
+uint32_t get_segmento_celda(uint32_t operando, uint8_t memoria){
+    
+}
 void operandos(uint32_t *lectura,uint32_t tipo,uint32_t registros[],uint8_t memoria[]){
     //lectura del valor de los operandos
     *lectura = 0;
@@ -590,7 +243,7 @@ int32_t get(uint32_t operando,uint32_t registros[], uint8_t memoria[],infoSegmen
     uint16_t direccion = registros[cod_reg] + (int16_t)(operando & 0x0000FFFF);//le saco el codigo de registro al operando y hago el casteo por si el offset es negativo
 
     if (tipo_operando == 0x01)
-        return (int32_t)registros[operando];
+        return (int32_t)get_segmento_registro(operando, registros);
     else if (tipo_operando == 0x02) {//inmediato, puede ser negativo
             if (operando & 0x8000) {
                 // es un número negativo
