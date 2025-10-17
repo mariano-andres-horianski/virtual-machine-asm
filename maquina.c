@@ -384,7 +384,7 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
     FILE *arch;
     char ident[6];
     char version;
-    uint16_t tamanio = 0, base;
+    uint16_t tamanio = 0, base, entry_offset;
     uint8_t byte_count,byte_aux;
     *num_segmentos =0;
     *resultado = 0;
@@ -406,7 +406,7 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
                 if(fread(&version, sizeof(char), 1, arch) == 1){
                     if(version == 2){
                         base = 0;
-                        for(i=0;i<10;i++){//leo 5 números de 2 bytes cada uno
+                        for(i=0;i<10;i++){//leo 5 números (son 5 segmentos quitando el param) de 2 bytes cada uno
                             if(fread(&byte_aux, 1, 1, arch) == 1){
                                 tamanio = (tamanio << 8) | byte_aux;
                                 if(i%2){
@@ -424,8 +424,12 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
                                     tamanio = 0;
                                 }
                             }
+                            fread(&byte_aux, 1, 1, arch);
+                            entry_offset = (entry_offset << 8) | byte_aux;
+                            fread(&byte_aux, 1, 1, arch);
+                            entry_offset = (entry_offset << 8) | byte_aux;
+                            registros[IP] = (registros[CS] << 16) | entry_offset;
                         }
-                        //queda por leer offset del entry point
                         //queda por asignar el param segment
                     }
                         
