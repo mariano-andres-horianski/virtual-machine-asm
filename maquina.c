@@ -412,9 +412,9 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
                                 if(i%2){
                                     //terminé de leer el tamaño de este segmento
                                     tablaSegmento[*num_segmentos].base = base;
-                                    tablaSegmento[*num_segmentos].tamanio = tamanio;
                                     base += tamanio;
                                     if(tamanio!=0){
+                                        tablaSegmento[*num_segmentos].tamanio = tamanio;
                                         *num_segmentos += 1;
                                         registros[26 + i/2] = base;
                                     }
