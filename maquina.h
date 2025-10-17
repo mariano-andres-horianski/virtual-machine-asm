@@ -13,9 +13,9 @@
 
 
 typedef enum {
-    LAR = 0,MAR,MBR,IP,OPC,OP1,OP2,
+    LAR = 0,MAR,MBR,IP,OPC,OP1,OP2,SP,BP,
     EAX = 10,EBX,ECX,EDX,EEX,EFX,AC,CC,
-    CS = 26,DS } nombres_registros;
+    CS = 26,DS,ES,SS,KS,PS } nombres_registros;
 
 typedef struct {
     unsigned short base;
