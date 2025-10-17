@@ -5,7 +5,7 @@ int main(int argc, char *argv[])
 //argc= contador de argumentos. *argv[]= vector de cadenas con los argumentos
 // ejemplo: "vmx filename.vmx -d" argc=3 argv=["vmx","filename.vmx","-d"]
 {
-    uint8_t memoria[MEM];                   // memoria principal de 16 KiB
+    uint8_t memoria[MEM], num_segmentos;                   // memoria principal de 16 KiB
     infoSegmento tablaSegmento[ENT];        // tabla de segmentos
     uint32_t registros[REG];                // registros de la máquina
     // Vector de punteros a funciones
@@ -21,7 +21,7 @@ int main(int argc, char *argv[])
     else {
         //argv[1] es el nombre del archivo
 
-        leerEncabezado(argv[1], registros, tablaSegmento, memoria, &resultado);
+        leerEncabezado(argv[1], registros, tablaSegmento, memoria, &resultado, &num_segmentos);
         if (resultado){
             printf("Inicio de ejecucion del programa %s\n", argv[1]);
             ejecucion(registros, tablaSegmento, memoria);

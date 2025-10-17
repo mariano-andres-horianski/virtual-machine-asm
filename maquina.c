@@ -380,15 +380,15 @@ void NO_ACCESIBLE(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegme
     printf("INSTRUCCION INVALIDA: codigo de operacion de la instruccion a ejecutar no existe\n");  // detecta uno de los 3 errores que se deben tener en cuenta segun requisitos
 }
 
-void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSegmento[ENT], uint8_t memoria[MEM], int *resultado){
+void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSegmento[ENT], uint8_t memoria[MEM], int *resultado, uint8_t *num_segmentos){
     FILE *arch;
     char ident[6];
     char version;
     uint16_t tamanio = 0, base;
     uint8_t byte_count,byte_aux;
-    
+    *num_segmentos =0;
     *resultado = 0;
-    
+    int i;
     arch = fopen(nombre, "rb");
     
     if(arch != NULL){
@@ -405,16 +405,24 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
             if(strcmp(ident,"VMX25") == 0)
                 if(fread(&version, sizeof(char), 1, arch) == 1){
                     if(version == 2){
-                        // leer tamaño byte por byte (big-endian)
-                        byte_count = 1;
                         base = 0;
-                        while (byte_count<=10 && fread(&byte_aux, 1, 1, arch) == 1){
-                            tablaSegmento[byte_count/2].base = base;
-                            registros[26 + byte_count/2] = base;
-                            tablaSegmento[byte_count/2].tamanio = (tablaSegmento[byte_count/2].tamanio << 8) | byte_aux;
-                            byte_count++;
-                            if(byte_count%2 == 0){
-                                base += tablaSegmento[byte_count/2].tamanio;
+                        for(i=0;i<10;i++){//leo 5 números de 2 bytes cada uno
+                            if(fread(&byte_aux, 1, 1, arch) == 1){
+                                tamanio = (tamanio << 8) | byte_aux;
+                                if(i%2){
+                                    //terminé de leer el tamaño de este segmento
+                                    tablaSegmento[*num_segmentos].base = base;
+                                    tablaSegmento[*num_segmentos].tamanio = tamanio;
+                                    base += tamanio;
+                                    if(tamanio!=0){
+                                        *num_segmentos += 1;
+                                        registros[26 + i/2] = base;
+                                    }
+                                    else{
+                                        registros[26 + i/2] = 0xFFFFFFFF;
+                                    }
+                                    tamanio = 0;
+                                }
                             }
                         }
                         //queda por leer offset del entry point
@@ -425,13 +433,6 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
                 else {
                     printf("ERROR: Versión incorrecta (esperado: 1, leído: %d)\n", (int)version);
                 }
-        }
-                else {
-                    printf("ERROR: No se pudo leer la versión\n");
-                }
-        
-        } else {
-            printf("ERROR: No se pudo leer el identificador\n");
         }
         
         fclose(arch);
