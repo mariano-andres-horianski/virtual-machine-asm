@@ -46,7 +46,6 @@ void disassembler(uint8_t memoria[], infoSegmento tablaSegmentos[], uint32_t tam
             instruccion[i]=memoria[PC];
         }
 
-        //calcular direccion fisica?
         printf("[%04X] ", dirFisica);
         mostrarHexa(instruccion, 0, N);
 
