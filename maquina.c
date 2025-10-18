@@ -230,6 +230,7 @@ void leerInstrucciones(uint8_t instruccion, uint8_t memoria[], uint32_t registro
 uint8_t get_segmento(uint8_t cod_reg, uint32_t registros[], infoSegmento tablaSegmentos[]){
     int i = 0;
     if(cod_reg < CS && cod_reg != BP && cod_reg != SP) cod_reg = CS; //El codigo de registro es uno de los de uso general
+    if(cod_reg == BP || cod_reg == SP) cod_reg = SS;
     while(tablaSegmentos[i].base != registros[cod_reg])
         i++;
     return i;

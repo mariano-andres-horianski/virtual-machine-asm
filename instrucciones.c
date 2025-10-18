@@ -17,7 +17,7 @@ void SYS(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
             for(j = 0; j < cantBytes; j++){
                 byteActual =  (valor >> ((cantBytes - 1 - j) * 8)) & 0xFF;
                 //llamamos a operacion memoria y no a set para no escribir exclusivamente 4 bytes de golpe
-                operacion_memoria(registros,memoria,registros[EDX]+i*cantBytes+j, byteActual, ESCRITURA, 1, tablaSegmentos);
+                operacion_memoria(registros,memoria,registros[EDX]+i*cantBytes+j, byteActual, ESCRITURA, 1, tablaSegmentos, DS);
             }
             printf("[%04x]: ",(registros[MAR] & 0x0000FFFF) - cantBytes + 1);
             if((modo_lectura & 0x10) != 0){
@@ -58,7 +58,7 @@ void SYS(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
             valor = 0;
             for(j = 0; j < cantBytes; j++){
                 //escribimos byte a byte, pasamos 0 en el valor para asegurarnos que el MBR va a estar limpio
-                operacion_memoria(registros,memoria,registros[EDX]+i*cantBytes+j, 0, LECTURA, 1, tablaSegmentos);
+                operacion_memoria(registros,memoria,registros[EDX]+i*cantBytes+j, 0, LECTURA, 1, tablaSegmentos, DS);
                 byteActual = registros[MBR];
                 valor = valor | (byteActual << ((cantBytes - 1 - j) * 8));
             }
@@ -260,17 +260,26 @@ void MOV(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
 }
 
 void PUSH(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
-    uint32_t valor_operando;
     registros[SP] = registros[SP] - 4;
     if(registros[SP] < registros[SS]){
         printf("ERROR: Stack Overflow\n");
         STOP(registros,memoria,tablaSegmentos);
     }
     else{
-        valor_operando = get(registros[OP1],registros,memoria,tablaSegmentos);
-        //faltan pasos 4 y 5 de la instruccion
-        set(registros,memoria,registros[SP],get(registros[OP1],registros,memoria,tablaSegmentos),tablaSegmentos);
-        
+        operacion_memoria(registros, memoria, registros[SP], get(registros[OP1],registros,memoria,tablaSegmentos), ESCRITURA, 4, tablaSegmentos, 0);
+    }
+}
+void POP(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
+    int32_t operando_memoria = 0x0  |(0x7 << 16); //creo un falso operando que sería el Stack Pointer
+    int32_t valor;
+    if(registros[SP] == registros[SS]){
+        printf("ERROR: Stack Underflow\n");
+        STOP(registros,memoria,tablaSegmentos);
+    }
+    else{
+        valor = get(operando_memoria,registros,memoria,tablaSegmentos);
+        registros[SP] += 4;
+        set(registros,memoria,registros[OP1],valor,tablaSegmentos);
     }
 }
 void NO_ACCESIBLE(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
