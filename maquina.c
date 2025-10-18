@@ -1,9 +1,4 @@
 #include "maquina.h"
-void inicioRegistro(uint32_t reg[]){
-    reg[CS] = 0x00000000;
-    reg[DS] = 0x00010000;
-    reg[IP] = reg [CS];
-}
 void inicioTablaSegmento(infoSegmento tabla[],uint16_t tamanioCod){
     tabla[0].base = 0x0000;
     tabla[0].tamanio = tamanioCod;
@@ -154,9 +149,6 @@ uint32_t get_segmento_registro(uint32_t operando,uint32_t registros[]){
 
     return registros[registro] >> (4-segmento_registro);
 }
-uint32_t get_segmento_celda(uint32_t operando, uint8_t memoria){
-    
-}
 void operandos(uint32_t *lectura,uint32_t tipo,uint32_t registros[],uint8_t memoria[]){
     //lectura del valor de los operandos
     *lectura = 0;
@@ -235,6 +227,13 @@ void leerInstrucciones(uint8_t instruccion, uint8_t memoria[], uint32_t registro
         }
     }
 }
+uint8_t get_segmento(uint8_t cod_reg, uint32_t registros[], infoSegmento tablaSegmentos[]){
+    int i = 0;
+    if(cod_reg < CS && cod_reg != BP && cod_reg != SP) cod_reg = CS; //El codigo de registro es uno de los de uso general
+    while(tablaSegmentos[i].base != registros[cod_reg])
+        i++;
+    return i;
+}
 int32_t get(uint32_t operando,uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
     // considerar caso de la funcion SYS donde la cantidad de bytes es impredecible
     int tipo_operando = (operando >> 24) & 0x00000003;
@@ -254,23 +253,42 @@ int32_t get(uint32_t operando,uint32_t registros[], uint8_t memoria[],infoSegmen
         }
     else {
         //el operando es direccion de memoria
-
-        operacion_memoria(registros, memoria, direccion, 0, LECTURA, 4, tablaSegmentos); //4 bytes porque es el tamaño de cada celda
+        direccion += 4-((operando>>30) & 0x00000003);
+        operacion_memoria(registros, memoria, direccion, 0, LECTURA, 4-((operando>>30) & 0x00000003), tablaSegmentos, get_segmento(cod_reg, registros, tablaSegmentos)); //4 bytes porque es el tamaño de cada celda
         return (int32_t)registros[MBR];
+    }
+}
+void set_segmento_registro(uint32_t registros[],uint32_t operando1, int32_t operando2,uint8_t reg){
+    uint8_t seg_reg = operando1 >> 6 & 0x03;
+
+    switch (seg_reg){
+        case 0:
+            registros[reg] = operando2;
+            break;
+        case 1://Por ejemplo AL
+            registros[reg] = (reg & 0xFFFFFF00) & operando2;
+            break;
+        case 2://Por ejemplo AH
+            registros[reg] = (reg & 0xFFFF00FF) & operando2;
+            break;
+        case 3://Por ejemplo AAX
+            registros[reg] = (reg & 0xFFFF0000) & operando2;
+            break;
     }
 }
 void set(uint32_t registros[], uint8_t memoria[], uint32_t operando1, int32_t operando2,infoSegmento tablaSegmentos[]){
     //operando 2 será inmediato siempre en esta función, pues se la llamará con el argumento get()
     int tipo_operando1 = (operando1 >> 24) & 0x00000003;
     uint32_t direccion;
-    uint8_t cod_reg = (operando1 >> 16) & 0x0000001F;
+    uint8_t cod_reg = (operando1 >> 16) & 0x0000001F,reg = operando1 & 0x1F;
     operando1 = operando1 & 0x00FFFFFF;
 
     if (tipo_operando1 == 1)
-        registros[operando1] = operando2;
+        set_segmento_registro(registros,operando1, operando2, reg);
     else{
         direccion = registros[cod_reg] +(int16_t) operando1 & 0x0000FFFF;
-        operacion_memoria(registros, memoria, direccion, operando2, ESCRITURA, 4,tablaSegmentos);
+
+        operacion_memoria(registros, memoria, direccion, operando2, ESCRITURA, 4,tablaSegmentos, get_segmento(cod_reg, registros, tablaSegmentos));
     }
 }
 

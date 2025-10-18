@@ -268,6 +268,7 @@ void PUSH(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[])
     }
     else{
         valor_operando = get(registros[OP1],registros,memoria,tablaSegmentos);
+        //faltan pasos 4 y 5 de la instruccion
         set(registros,memoria,registros[SP],get(registros[OP1],registros,memoria,tablaSegmentos),tablaSegmentos);
         
     }
