@@ -36,6 +36,8 @@ void leerInstrucciones(uint8_t instruccion, uint8_t memoria[], uint32_t registro
 void operandos(uint32_t *lectura,uint32_t tipo,uint32_t registros[],uint8_t memoria[]);
 void actualizarCC(uint32_t registros[],int32_t resultado);
 uint32_t get_segmento_registro(uint32_t operando,uint32_t registros[]);
+void generar_imagen(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]);
+
 
 void RND(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]);
 void SYS(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]);

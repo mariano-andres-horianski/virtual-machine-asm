@@ -314,3 +314,31 @@ void actualizarCC(uint32_t registros[],int32_t resultado){
         registros[CC] = registros[CC] | (0x01 << 30);
     //printf("CC actualizado: %d\n",registros[CC]);
 }
+void generar_imagen(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
+    FILE *archivoVMI;
+    uint16_t tamMemoria = MEM; /// --------------------------------MODIFICAR CON VERSION 2 (VARIABLE)------------------------
+    int i,tamTabla = 8;
+    uint32_t registro,segmento;
+
+    archivoVMI = fopen("Estado_Actual","wb");//------------------MODIFICAR NOMBRE COMO PARAMETRO--------------------------
+    if(archivoVMI != NULL){
+        fwrite("VMI25",1,5,archivoVMI);
+        uint8_t version = 1;
+        fwrite(&version,1,1,archivoVMI);
+        fwrite(&tamMemoria,2,1,archivoVMI);
+        for(i=0; i<REG; i++){
+            int registro = registros[i];
+            registro = ((registro >> 24) & 0xFF) | ((registro << 8) & 0xFF0000) |  ((registro >> 8) & 0xFF00) |  ((registro << 24) & 0xFF000000);
+            fwrite(&registro,4,1,archivoVMI);
+        }
+        for(i=0; i<tamTabla; i++){
+            segmento = (tablaSegmentos[i].base << 16) | tablaSegmentos[i].tamanio;
+            segmento = ((segmento >> 24) & 0xFF) | ((segmento << 8) & 0xFF0000) |  ((segmento >> 8) & 0xFF00) |  ((segmento << 24) & 0xFF000000);
+            fwrite(&segmento,4,1,archivoVMI);
+        }
+        fwrite(memoria,1,tamMemoria,archivoVMI);
+        fclose(archivoVMI);
+    }
+    
+
+}

@@ -6,7 +6,10 @@ void SYS(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
     uint8_t modo_lectura = registros[EAX],byteActual;
     int64_t valor;
     int i,b,j,caracter;
-    if(get(registros[OP1],registros,memoria,tablaSegmentos) == 0x1){ //lectura
+
+    uint32_t llamado = get(registros[OP1],registros,memoria,tablaSegmentos);
+    switch (llamado){
+    case  0x1: { //lectura
         //guarda en memoria
         for(i = 0; i<cantCeldas; i++){
             if(scanf("%lld", &valor) != 1) {
@@ -17,7 +20,7 @@ void SYS(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
             for(j = 0; j < cantBytes; j++){
                 byteActual =  (valor >> ((cantBytes - 1 - j) * 8)) & 0xFF;
                 //llamamos a operacion memoria y no a set para no escribir exclusivamente 4 bytes de golpe
-                operacion_memoria(registros,memoria,registros[EDX]+i*cantBytes+j, byteActual, ESCRITURA, 1, tablaSegmentos);
+                operacion_memoria(registros,memoria,registros[EDX]+i*cantBytes+j, byteActual, ESCRITURA, 1, tablaSegmentos); 
             }
             printf("[%04x]: ",(registros[MAR] & 0x0000FFFF) - cantBytes + 1);
             if((modo_lectura & 0x10) != 0){
@@ -53,7 +56,8 @@ void SYS(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
         }
         printf("\n");
     }
-    else if(get(registros[OP1],registros,memoria,tablaSegmentos) == 0x2){ //escribe en pantalla
+    break;
+    case 0x2: { //escribe en pantalla 
         for(i = 0; i<cantCeldas; i++){
             valor = 0;
             for(j = 0; j < cantBytes; j++){
@@ -89,7 +93,51 @@ void SYS(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
             }
         printf("\n");
         }
-        printf("\n");
+    printf("\n");
+    }
+    break;
+    case 0x3: {
+        uint16_t cantCaracteres = registros[ECX] & 0xFFFF;
+        char caracter;
+        if(cantCaracteres != -1)
+            for(i=0; i<cantCaracteres; i++){ 
+                caracter = getchar();
+                operacion_memoria(registros,memoria,registros[EDX]+i, caracter, ESCRITURA, 1, tablaSegmentos);
+            }
+        else {
+            caracter = getchar();
+            i=0;
+            while(caracter != '\n'){
+                operacion_memoria(registros,memoria,registros[EDX]+i, caracter, ESCRITURA, 1, tablaSegmentos);
+                caracter = getchar();
+                i++;
+            }
+        }
+        operacion_memoria(registros,memoria,registros[EDX]+i,'\0', ESCRITURA, 1, tablaSegmentos);
+    }
+    case 0x4: {
+        i = 0;
+        operacion_memoria(registros,memoria,registros[EDX], 0, LECTURA, 1, tablaSegmentos);
+        char caracter = registros[MBR] & 0xFF;
+        while(caracter != '\0'){
+            printf("%c",caracter);
+            i++;
+            operacion_memoria(registros,memoria,registros[EDX]+i, 0, LECTURA, 1, tablaSegmentos);
+            caracter = registros[MBR] & 0xFF;
+        } 
+    break;
+    }
+    case 0x7: {
+        system("cls");
+    break;
+    }
+    case 0xF:{
+        if(imagenVMI){ //--------------CONDICION DE VMI----------------------------------------------------------------
+            generar_imagen(registros,memoria,tablaSegmentos);
+            char caracter = getchar();
+            //-----------------------------------------------
+    break;
+    }
     }
 }
 void RND(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
