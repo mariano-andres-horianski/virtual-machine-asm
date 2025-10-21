@@ -177,22 +177,12 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
                                         }
                                     }
                                 }
-                                if(fread(memoria + tablaSegmento[registros[CS]].base,tablaSegmento[registros[CS]].tamanio,1,arch) == 1){
-                                    if(fread(memoria + tablaSegmento[registros[KS]].base,tablaSegmento[registros[KS]].tamanio,1,arch) == 1){
-                                        *resultado = 1;
+                                //luego byte por byte la memoria
+                                //los bytes se añaden en el orden que se leen (el primer byte en la posicion 0 del vector memoria, el segundo en la 1 y asi)
+                                for(i = 0; i < tamanio_mem_principal; i++){
+                                    if(fread(&byte_aux, 1, 1, arch) == 1){
+                                        memoria[i] = byte_aux;
                                     }
-                                    
-                                    printf("No se pudo leer el const segment \n");
-                                }
-                                else{
-                                    printf("No se pudo leer el code segment \n");
-                                }
-                            }
-                            //luego byte por byte la memoria
-                            //los bytes se añaden en el orden que se leen (el primer byte en la posicion 0 del vector memoria, el segundo en la 1 y asi)
-                            for(i = 0; i < tamanio_mem_principal; i++){
-                                if(fread(&byte_aux, 1, 1, arch) == 1){
-                                    memoria[i] = byte_aux;
                                 }
                             }
                             
