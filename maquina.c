@@ -81,7 +81,6 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
                             if(fread(&byte_aux, 1, 1, arch) == 1){
                                 tamanio = tamanio | byte_aux;
                             }
-                            //queda iniciar la tabla de segmentos y los registros para la version 1 de la VM, ver funciones en el github inicioRegistros e inicioTablaSegmento
                             fread(memoria, sizeof(uint8_t), tamanio, arch);
                         }
                         inicioTablaSegmento(tablaSegmento,tamanio);
