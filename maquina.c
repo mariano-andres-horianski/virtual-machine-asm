@@ -101,6 +101,7 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
                             printf("No se pudo leer el segmento constantes%d\n",i);
                         }
                     }
+                    *resultado = 1;
                 }
             else{
                 if(strcmp(ident,"VMI25") == 0){
