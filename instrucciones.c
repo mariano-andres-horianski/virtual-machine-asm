@@ -133,8 +133,15 @@ void SYS(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
     }
     case 0xF:{
         if(imagenVMI){ //--------------CONDICION DE VMI----------------------------------------------------------------
+            do{
             generar_imagen(registros,memoria,tablaSegmentos);
-            char caracter = getchar();
+            char caracter = getchar(); 
+            if(caracter == 'q')
+                STOP(registros,memoria,tablaSegmentos);
+            else
+                if(caracter == '\n' && registros[IP] != 0xFFFFFFFF)
+                    leerInstrucciones(memoria[registros[IP]], memoria, registros, tablaSegmentos);
+            } while(caracter != 'q' || carater != 'g')
             //-----------------------------------------------
     break;
     }
