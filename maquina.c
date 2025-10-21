@@ -43,27 +43,41 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
             ident[5]='\0';
             if(strcmp(ident,"VMX25") == 0)
                 if(fread(&version, sizeof(char), 1, arch) == 1){
-                    if(version == 2){
-                        base = 0;
-                        for(i=0;i<10;i++){//leo 5 números (son 5 segmentos quitando el param) de 2 bytes cada uno
+                    if(version == 1){
+                        if(fread(&byte_aux, 1, 1, arch) == 1){
+                            tamanio = (tamanio << 8) | byte_aux;
                             if(fread(&byte_aux, 1, 1, arch) == 1){
-                                tamanio = (tamanio << 8) | byte_aux;
-                                if(i%2){
-                                    //terminé de leer el tamaño de este segmento
-                                    tablaSegmento[*num_segmentos].base = base;
-                                    base += tamanio;
-                                    if(tamanio!=0){
-                                        tablaSegmento[*num_segmentos].tamanio = tamanio;
-                                        *num_segmentos += 1;
-                                        registros[26 + i/2] = base;
-                                    }
-                                    else{
-                                        registros[26 + i/2] = 0xFFFFFFFF;
-                                    }
-                                    tamanio = 0;
-                                }
+                                tamanio = tamanio | byte_aux;
                             }
-                            fread(&byte_aux, 1, 1, arch);
+                            fread(memoria, sizeof(uint8_t), tamanio, arch);
+                        }
+                        inicioTablaSegmento(tablaSegmento,tamanio);
+                        inicioRegistros(registros);
+                        *resultado = 1;
+                    }
+                }
+                if(version == 2){
+                    base = 0;
+                    for(i=0;i<10;i++){//leo 5 números (son 5 segmentos quitando el param) de 2 bytes cada uno
+                        if(fread(&byte_aux, 1, 1, arch) == 1){
+                            tamanio = (tamanio << 8) | byte_aux;
+                            if(i%2){
+                                //terminé de leer el tamaño de este segmento
+                                tablaSegmento[*num_segmentos].base = base;
+                                base += tamanio;
+                                if(tamanio!=0){
+                                    tablaSegmento[*num_segmentos].tamanio = tamanio;
+                                    *num_segmentos += 1;
+                                    registros[26 + i/2] = base;
+                                }
+                                else{
+                                    registros[26 + i/2] = 0xFFFFFFFF;
+                                }
+                                tamanio_mem_principal += tamanio;
+                                tamanio = 0;
+                            }
+                        }
+                        if(fread(&byte_aux, 1, 1, arch) == 1){
                             entry_offset = (entry_offset << 8) | byte_aux;
                             if(read(&byte_aux, 1, 1, arch)){
                                 entry_offset = (entry_offset << 8) | byte_aux;
