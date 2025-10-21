@@ -84,7 +84,11 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
                             //queda iniciar la tabla de segmentos y los registros para la version 1 de la VM, ver funciones en el github inicioRegistros e inicioTablaSegmento
                             fread(memoria, sizeof(uint8_t), tamanio, arch);
                         }
+                        inicioTablaSegmento(tablaSegmento,tamanio);
+                        inicioRegistros(registros);
+                        *resultado = 1;
                     }
+                }
                 if(version == 2){
                     base = 0;
                     for(i=0;i<10;i++){//leo 5 números (son 5 segmentos quitando el param) de 2 bytes cada uno
@@ -115,21 +119,20 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
                         }
                     }
                     //queda por asignar el param segment
-                    if(fread(memoria + tablaSegmento[registros[CS]].base,tablaSegmento[registros[CS]].tamanio,1,arch) == 1){
-                        if(fread(memoria + tablaSegmento[registros[KS]].base,tablaSegmento[registros[KS]].tamanio,1,arch) == 1){
-                            *resultado = 1;
+                    for(i=0;i<tablaSegmento[registros[CS]].tamanio;i++){
+                        if(fread(memoria + tablaSegmento[registros[CS]].base + i,1,1,arch) == 1){
                         }
-                        
-                        printf("No se pudo leer el const segment \n");
+                        else{
+                            printf("No se pudo leer el segmento codigo%d\n",i);
+                        }
                     }
-                    else{
-                        printf("No se pudo leer el code segment \n");
+                    for(i=0;i<tablaSegmento[registros[KS]].tamanio;i++){
+                        if(fread(memoria + tablaSegmento[registros[KS]].base + i,1,1,arch) == 1){
+                        }
+                        else{
+                            printf("No se pudo leer el segmento constantes%d\n",i);
+                        }
                     }
-                }
-                        
-                }
-                else {
-                    printf("ERROR: Versión incorrecta (esperado: 1, leído: %d)\n", (int)version);
                 }
             else{
                 if(strcmp(ident,"VMI25") == 0){
@@ -196,12 +199,18 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
                             registros[IP] = (registros[CS] << 16) | entry_offset;
                             *resultado = 1;
                         }
+                                
+                        else {
+                            printf("ERROR: Versión incorrecta (esperado: 1, leído: %d)\n", (int)version);
                         }
+                    }
+                    else{
+                        printf("No se pudo leer la version\n");
                     }
                 }
             }
-        }
         fclose(arch);
+    }
     }
     else {
         printf("ERROR: No se pudo abrir el archivo '%s'\n", nombre);
