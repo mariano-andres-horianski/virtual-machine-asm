@@ -19,12 +19,11 @@ static void mostrarHexa(uint8_t instruccion[], uint8_t inicio, uint8_t fin) {
     }
 }
 
-
 void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSegmento[ENT], uint8_t memoria[MEM], int *resultado, uint8_t *num_segmentos){
     FILE *arch;
     char ident[6];
     char version;
-    uint16_t tamanio = 0, base, entry_offset;
+    uint16_t tamanio = 0, tamanio_mem_principal=0, base, entry_offset;
     uint8_t byte_count,byte_aux;
     *num_segmentos =0;
     *resultado = 0;
@@ -44,42 +43,133 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
             ident[5]='\0';
             if(strcmp(ident,"VMX25") == 0)
                 if(fread(&version, sizeof(char), 1, arch) == 1){
-                    if(version == 2){
-                        base = 0;
-                        for(i=0;i<10;i++){//leo 5 números (son 5 segmentos quitando el param) de 2 bytes cada uno
+                    if(version == 1){
+                        if(fread(&byte_aux, 1, 1, arch) == 1){
+                            tamanio = (tamanio << 8) | byte_aux;
                             if(fread(&byte_aux, 1, 1, arch) == 1){
-                                tamanio = (tamanio << 8) | byte_aux;
-                                if(i%2){
-                                    //terminé de leer el tamaño de este segmento
-                                    tablaSegmento[*num_segmentos].base = base;
-                                    base += tamanio;
-                                    if(tamanio!=0){
-                                        tablaSegmento[*num_segmentos].tamanio = tamanio;
-                                        *num_segmentos += 1;
-                                        registros[26 + i/2] = (*num_segmentos) << 16; 
+                                tamanio = tamanio | byte_aux;
+                            }
+                            //queda iniciar la tabla de segmentos y los registros para la version 1 de la VM, ver funciones en el github inicioRegistros e inicioTablaSegmento
+                            fread(memoria, sizeof(uint8_t), tamanio, arch);
+                        }
+                        inicioTablaSegmento(tablaSegmento,tamanio);
+                        inicioRegistros(registros);
+                        *resultado = 1;
+                    }
+                }
+                if(version == 2){
+                    base = 0;
+                    for(i=0;i<10;i++){//leo 5 números (son 5 segmentos quitando el param) de 2 bytes cada uno
+                        if(fread(&byte_aux, 1, 1, arch) == 1){
+                            tamanio = (tamanio << 8) | byte_aux;
+                            if(i%2){
+                                //terminé de leer el tamaño de este segmento
+                                tablaSegmento[*num_segmentos].base = base;
+                                base += tamanio;
+                                if(tamanio!=0){
+                                    tablaSegmento[*num_segmentos].tamanio = tamanio;
+                                    *num_segmentos += 1;
+                                    registros[26 + i/2] = base;
+                                }
+                                else{
+                                    registros[26 + i/2] = 0xFFFFFFFF;
+                                }
+                                tamanio_mem_principal += tamanio;
+                                tamanio = 0;
+                            }
+                        }
+                        if(fread(&byte_aux, 1, 1, arch) == 1){
+                            entry_offset = (entry_offset << 8) | byte_aux;
+                            if(read(&byte_aux, 1, 1, arch)){
+                                entry_offset = (entry_offset << 8) | byte_aux;
+                                registros[IP] = (registros[CS] << 16) | entry_offset;
+                            }
+                        }
+                    }
+                    //queda por asignar el param segment
+                    for(i=0;i<tablaSegmento[registros[CS]].tamanio;i++){
+                        if(fread(memoria + tablaSegmento[registros[CS]].base + i,1,1,arch) == 1){
+                        }
+                        else{
+                            printf("No se pudo leer el segmento codigo%d\n",i);
+                        }
+                    }
+                    for(i=0;i<tablaSegmento[registros[KS]].tamanio;i++){
+                        if(fread(memoria + tablaSegmento[registros[KS]].base + i,1,1,arch) == 1){
+                        }
+                        else{
+                            printf("No se pudo leer el segmento constantes%d\n",i);
+                        }
+                    }
+                    *resultado = 1;
+                }
+            else{
+                if(strcmp(ident,"VMI25") == 0){
+                    if(fread(&version, sizeof(char), 1, arch) == 1){
+                        if(version == 1){
+                            if(fread(&byte_aux, 1, 1, arch) == 1){
+                                tamanio_mem_principal = (tamanio_mem_principal << 8) | byte_aux;
+                                if(fread(&byte_aux, 1, 1, arch) == 1){
+                                    tamanio_mem_principal = tamanio_mem_principal | byte_aux; // tercera linea del header de la vmi es el tamaño de la memoria principal
+                                }
+                                //toca leer registros uno por uno en el header de la vmi, luego la tabla de descriptores de segmentos
+                                //para leer los vectores se leen byte a byte las siguientes 32 celdas de cuatro bytes, cada celda es un registro
+                                //los registros vienen dados en el orden del vector de registros (el primero es el registro 0, el ultimo el registro 31)
+                                //el primer byte de la celda es el primer (mas a la izquierda) byte del registro, el segundo es el segundo byte del registro y asi
+                                for(i = 0; i < 32; i++){
+                                    for(int j = 0; j < 4; j++){
+                                        if(fread(&byte_aux, 1, 1, arch) == 1){
+                                            registros[i] = (registros[i] << 8) | byte_aux;
+                                        }
                                     }
-                                    else{
-                                        registros[26 + i/2] = 0xFFFFFFFF;
+                                }
+                                //ahora toca leer la tabla de descriptores de segmentos
+                                //son 8 celdas de 4 byts
+                                //los primeros dos bytes indican la base del segmento, el tercer y cuarto byte el tamaño
+                                //si el tamaño es cero, el numero de segmentos no se incrementa
+                                for(i = 0; i < 8; i++){
+                                    if(fread(&byte_aux, 1, 1, arch) == 1){
+                                        base = (base << 8) | byte_aux;
+                                        if(fread(&byte_aux, 1, 1, arch) == 1){
+                                            base = (base << 8) | byte_aux;
+                                            if(fread(&byte_aux, 1, 1, arch) == 1){
+                                                tamanio = (tamanio << 8) | byte_aux;
+                                                if(fread(&byte_aux, 1, 1, arch) == 1){
+                                                    tamanio = (tamanio << 8) | byte_aux;
+                                                    if(tamanio != 0){
+                                                        tablaSegmento[*num_segmentos].base = base;
+                                                        tablaSegmento[*num_segmentos].tamanio = tamanio;
+                                                        *num_segmentos += 1;
+                                                    }
+                                                }
+                                            }
+                                        }
                                     }
-                                    tamanio = 0;
+                                }
+                                //luego byte por byte la memoria
+                                //los bytes se añaden en el orden que se leen (el primer byte en la posicion 0 del vector memoria, el segundo en la 1 y asi)
+                                for(i = 0; i < tamanio_mem_principal; i++){
+                                    if(fread(&byte_aux, 1, 1, arch) == 1){
+                                        memoria[i] = byte_aux;
+                                    }
                                 }
                             }
-                            fread(&byte_aux, 1, 1, arch);
-                            entry_offset = (entry_offset << 8) | byte_aux;
-                            fread(&byte_aux, 1, 1, arch);
-                            entry_offset = (entry_offset << 8) | byte_aux;
+                            
                             registros[IP] = (registros[CS] << 16) | entry_offset;
+                            *resultado = 1;
                         }
-                        //queda por asignar el param segment
+                                
+                        else {
+                            printf("ERROR: Versión incorrecta (esperado: 1, leído: %d)\n", (int)version);
+                        }
                     }
-                        
+                    else{
+                        printf("No se pudo leer la version\n");
+                    }
                 }
-                else {
-                    printf("ERROR: Versión incorrecta (esperado: 1, leído: %d)\n", (int)version);
-                }
-        }
-        
+            }
         fclose(arch);
+    }
     }
     else {
         printf("ERROR: No se pudo abrir el archivo '%s'\n", nombre);
