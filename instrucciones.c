@@ -266,7 +266,7 @@ void PUSH(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[])
         STOP(registros,memoria,tablaSegmentos);
     }
     else{
-        operacion_memoria(registros, memoria, registros[SP], get(registros[OP1],registros,memoria,tablaSegmentos), ESCRITURA, 4, tablaSegmentos, 0);
+        operacion_memoria(registros, memoria, registros[SP], get(registros[OP1],registros,memoria,tablaSegmentos), ESCRITURA, 4, tablaSegmentos, registros[SS]);
     }
 }
 void POP(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
