@@ -38,6 +38,8 @@ void actualizarCC(uint32_t registros[],int32_t resultado);
 uint32_t get_segmento_registro(uint32_t operando,uint32_t registros[]);
 uint8_t get_segmento(uint8_t cod_reg, uint32_t registros[], infoSegmento tablaSegmentos[]);
 void set_segmento_registro(uint32_t registros[],uint32_t operando1, int32_t operando2,uint8_t reg);
+void generar_imagen(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]);
+
 
 void RND(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]);
 void SYS(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]);
