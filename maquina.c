@@ -123,7 +123,7 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
                                         }
                                     }
                                 }
-                                //ahora toca leer la tabla de descriptores de segmentos
+                                //leer la tabla de descriptores de segmentos
                                 //son 8 celdas de 4 byts
                                 //los primeros dos bytes indican la base del segmento, el tercer y cuarto byte el tamaño
                                 //si el tamaño es cero, el numero de segmentos no se incrementa

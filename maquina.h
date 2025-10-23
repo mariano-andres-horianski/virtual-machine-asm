@@ -11,7 +11,7 @@
 #define ENT 6
 #define REG 32
 
-
+int imagenVMI;
 typedef enum {
     LAR = 0,MAR,MBR,IP,OPC,OP1,OP2,SP,BP,
     EAX = 10,EBX,ECX,EDX,EEX,EFX,AC,CC,
@@ -67,6 +67,8 @@ void LDL(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]);
 void LDH(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]);
 void NOT(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]);
 void STOP(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]);
+void CALL(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]);
+void RET(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]);
 void NO_ACCESIBLE(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]);
 
 

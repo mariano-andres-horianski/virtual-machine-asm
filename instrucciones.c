@@ -9,142 +9,143 @@ void SYS(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
 
     uint32_t llamado = get(registros[OP1],registros,memoria,tablaSegmentos);
     switch (llamado){
-    case  0x1: { //lectura
-        //guarda en memoria
-        for(i = 0; i<cantCeldas; i++){
-            if(scanf("%lld", &valor) != 1) {
-                printf("ERROR: Entrada inválida\n");
-                STOP(registros, memoria, tablaSegmentos);
-                return;
-            }
-            for(j = 0; j < cantBytes; j++){
-                byteActual =  (valor >> ((cantBytes - 1 - j) * 8)) & 0xFF;
-                //llamamos a operacion memoria y no a set para no escribir exclusivamente 4 bytes de golpe
-                operacion_memoria(registros,memoria,registros[EDX]+i*cantBytes+j, byteActual, ESCRITURA, 1, tablaSegmentos, DS);
-            }
-            printf("[%04x]: ",(registros[MAR] & 0x0000FFFF) - cantBytes + 1);
-            if((modo_lectura & 0x10) != 0){
-                // binario
-                for(b = 0; b < cantBytes; b++){
-                    printf("%d ",valor >> ((cantBytes - 1 - b) * 8) & 0x01);
+        case  0x1: { //lectura
+            //guarda en memoria
+            for(i = 0; i<cantCeldas; i++){
+                if(scanf("%lld", &valor) != 1) {
+                    printf("ERROR: Entrada inválida\n");
+                    STOP(registros, memoria, tablaSegmentos);
+                    return;
                 }
-                printf(" ");
-            }
-            if((modo_lectura & 0x08) != 0){
-                //hexa
-                printf("%x",valor);
-                printf(" ");
-            }
-            if((modo_lectura & 0x04) != 0){
-                //octal
-                printf("%llo",valor);
-                printf(" ");
-            }
-            if((modo_lectura & 0x02) != 0){
-                //caracter
-                printf("%lc",valor);
-                for(caracter = 0; caracter < cantBytes; caracter++){
-                    printf("%c",valor >> ((cantBytes - 1 - caracter) * 8) & 0xFF);
+                for(j = 0; j < cantBytes; j++){
+                    byteActual =  (valor >> ((cantBytes - 1 - j) * 8)) & 0xFF;
+                    //llamamos a operacion memoria y no a set para no escribir exclusivamente 4 bytes de golpe
+                    operacion_memoria(registros,memoria,registros[EDX]+i*cantBytes+j, byteActual, ESCRITURA, 1, tablaSegmentos, DS);
                 }
-                printf(" ");
+                printf("[%04x]: ",(registros[MAR] & 0x0000FFFF) - cantBytes + 1);
+                if((modo_lectura & 0x10) != 0){
+                    // binario
+                    for(b = 0; b < cantBytes; b++){
+                        printf("%d ",valor >> ((cantBytes - 1 - b) * 8) & 0x01);
+                    }
+                    printf(" ");
+                }
+                if((modo_lectura & 0x08) != 0){
+                    //hexa
+                    printf("%x",valor);
+                    printf(" ");
+                }
+                if((modo_lectura & 0x04) != 0){
+                    //octal
+                    printf("%llo",valor);
+                    printf(" ");
+                }
+                if((modo_lectura & 0x02) != 0){
+                    //caracter
+                    printf("%lc",valor);
+                    for(caracter = 0; caracter < cantBytes; caracter++){
+                        printf("%c",valor >> ((cantBytes - 1 - caracter) * 8) & 0xFF);
+                    }
+                    printf(" ");
+                }
+                if((modo_lectura & 0x01) != 0){
+                    //decimal
+                    printf("%lld",valor);
+                }
+            printf("\n");
             }
-            if((modo_lectura & 0x01) != 0){
-                //decimal
-                printf("%lld",valor);
+            printf("\n");
+        }
+        break;
+        case 0x2: { //escribe en pantalla 
+            for(i = 0; i<cantCeldas; i++){
+                valor = 0;
+                for(j = 0; j < cantBytes; j++){
+                    //escribimos byte a byte, pasamos 0 en el valor para asegurarnos que el MBR va a estar limpio
+                    operacion_memoria(registros,memoria,registros[EDX]+i*cantBytes+j, 0, LECTURA, 1, tablaSegmentos, DS);
+                    byteActual = registros[MBR];
+                    valor = valor | (byteActual << ((cantBytes - 1 - j) * 8));
+                }
+                printf("[%04x]: ",(registros[MAR] & 0x0000FFFF) - cantBytes + 1);
+                if((modo_lectura & 0x10) != 0){
+                    for(b = 0; b < cantBytes; b++){
+                        printf("%d ",valor >> ((cantBytes - 1 - b) * 8) & 0x01);//muestro el valor en binario
+                    }
+                    printf(" ");
+                }
+                if((modo_lectura & 0x08) != 0){
+                    printf("0x%x",valor);
+                    printf(" ");
+                }
+                if((modo_lectura & 0x04) != 0){
+                    printf("%o",valor);
+                    printf(" ");
+                }
+                if((modo_lectura & 0x02) != 0){
+                    printf("%c",valor);
+                    for(caracter = 0; caracter < cantBytes; caracter++){
+                        printf("%c",valor >> ((cantBytes - 1 - caracter) * 8) & 0xFF);
+                    }
+                    printf(" ");
+                }
+                if((modo_lectura & 0x01) != 0){
+                    printf("%d",valor);
+                }
+            printf("\n");
             }
         printf("\n");
         }
-        printf("\n");
-    }
-    break;
-    case 0x2: { //escribe en pantalla 
-        for(i = 0; i<cantCeldas; i++){
-            valor = 0;
-            for(j = 0; j < cantBytes; j++){
-                //escribimos byte a byte, pasamos 0 en el valor para asegurarnos que el MBR va a estar limpio
-                operacion_memoria(registros,memoria,registros[EDX]+i*cantBytes+j, 0, LECTURA, 1, tablaSegmentos, DS);
-                byteActual = registros[MBR];
-                valor = valor | (byteActual << ((cantBytes - 1 - j) * 8));
-            }
-            printf("[%04x]: ",(registros[MAR] & 0x0000FFFF) - cantBytes + 1);
-            if((modo_lectura & 0x10) != 0){
-                for(b = 0; b < cantBytes; b++){
-                    printf("%d ",valor >> ((cantBytes - 1 - b) * 8) & 0x01);//muestro el valor en binario
+        break;
+        case 0x3: {
+            uint16_t cantCaracteres = registros[ECX] & 0xFFFF;
+            char caracter;
+            if(cantCaracteres != -1)
+                for(i=0; i<cantCaracteres; i++){ 
+                    caracter = getchar();
+                    operacion_memoria(registros,memoria,registros[EDX]+i, caracter, ESCRITURA, 1, tablaSegmentos, DS);
                 }
-                printf(" ");
-            }
-            if((modo_lectura & 0x08) != 0){
-                printf("0x%x",valor);
-                printf(" ");
-            }
-            if((modo_lectura & 0x04) != 0){
-                printf("%o",valor);
-                printf(" ");
-            }
-            if((modo_lectura & 0x02) != 0){
-                printf("%c",valor);
-                for(caracter = 0; caracter < cantBytes; caracter++){
-                    printf("%c",valor >> ((cantBytes - 1 - caracter) * 8) & 0xFF);
+            else {
+                caracter = getchar();
+                i=0;
+                while(caracter != '\n'){
+                    operacion_memoria(registros,memoria,registros[EDX]+i, caracter, ESCRITURA, 1, tablaSegmentos, DS);
+                    caracter = getchar();
+                    i++;
                 }
-                printf(" ");
             }
-            if((modo_lectura & 0x01) != 0){
-                printf("%d",valor);
-            }
-        printf("\n");
+            operacion_memoria(registros,memoria,registros[EDX]+i,'\0', ESCRITURA, 1, tablaSegmentos, DS);
         }
-    printf("\n");
-    }
-    break;
-    case 0x3: {
-        uint16_t cantCaracteres = registros[ECX] & 0xFFFF;
-        char caracter;
-        if(cantCaracteres != -1)
-            for(i=0; i<cantCaracteres; i++){ 
-                caracter = getchar();
-                operacion_memoria(registros,memoria,registros[EDX]+i, caracter, ESCRITURA, 1, tablaSegmentos);
-            }
-        else {
-            caracter = getchar();
-            i=0;
-            while(caracter != '\n'){
-                operacion_memoria(registros,memoria,registros[EDX]+i, caracter, ESCRITURA, 1, tablaSegmentos);
-                caracter = getchar();
+        case 0x4: {
+            i = 0;
+            operacion_memoria(registros,memoria,registros[EDX], 0, LECTURA, 1, tablaSegmentos, DS);
+            char caracter = registros[MBR] & 0xFF;
+            while(caracter != '\0'){
+                printf("%c",caracter);
                 i++;
+                operacion_memoria(registros,memoria,registros[EDX]+i, 0, LECTURA, 1, tablaSegmentos, DS);
+                caracter = registros[MBR] & 0xFF;
+            } 
+        break;
+        }
+        case 0x7: {
+            system("cls");
+            break; 
+        }
+        case 0xF:{
+            if(imagenVMI){ //--------------CONDICION DE VMI----------------------------------------------------------------
+                do{
+                generar_imagen(registros,memoria,tablaSegmentos);
+                char caracter = getchar(); 
+                if(caracter == 'q')
+                    STOP(registros,memoria,tablaSegmentos);
+                else
+                    if(caracter == '\n' && registros[IP] != 0xFFFFFFFF)
+                        leerInstrucciones(memoria[registros[IP]], memoria, registros, tablaSegmentos);
+                } while(caracter != 'q' || caracter != 'g');
+                //-----------------------------------------------
+                break;
             }
         }
-        operacion_memoria(registros,memoria,registros[EDX]+i,'\0', ESCRITURA, 1, tablaSegmentos);
-    }
-    case 0x4: {
-        i = 0;
-        operacion_memoria(registros,memoria,registros[EDX], 0, LECTURA, 1, tablaSegmentos);
-        char caracter = registros[MBR] & 0xFF;
-        while(caracter != '\0'){
-            printf("%c",caracter);
-            i++;
-            operacion_memoria(registros,memoria,registros[EDX]+i, 0, LECTURA, 1, tablaSegmentos);
-            caracter = registros[MBR] & 0xFF;
-        } 
-    break;
-    }
-    case 0x7: {
-        system("cls");
-    break;
-    }
-    case 0xF:{
-        if(imagenVMI){ //--------------CONDICION DE VMI----------------------------------------------------------------
-            do{
-            generar_imagen(registros,memoria,tablaSegmentos);
-            char caracter = getchar(); 
-            if(caracter == 'q')
-                STOP(registros,memoria,tablaSegmentos);
-            else
-                if(caracter == '\n' && registros[IP] != 0xFFFFFFFF)
-                    leerInstrucciones(memoria[registros[IP]], memoria, registros, tablaSegmentos);
-            } while(caracter != 'q' || carater != 'g')
-            //-----------------------------------------------
-    break;
-    }
     }
 }
 void RND(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
@@ -213,32 +214,7 @@ void DIV(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
         STOP(registros,memoria,tablaSegmentos);
     }
 }
-/*
-//version alternativa del div con otra division
-//la anterior tenia un problema en el codigo de la pregunta 5 del cuestionario, donde almacenaba 0 pero debia almacenar -1 que era el cociente
-void DIV(uint32_t registros[], uint8_t memoria[], infoSegmento tablaSegmentos[]) {
-    int32_t dividendo = get(registros[OP1], registros, memoria, tablaSegmentos);
-    int32_t divisor = get(registros[OP2], registros, memoria, tablaSegmentos);
-    
-    if (divisor != 0) {
-        int32_t cociente = dividendo / divisor;
-        int32_t resto = dividendo % divisor;
 
-        //chequeo que se hace si el signo del divisor y dividendo difieren
-        if ((resto != 0) && ((dividendo < 0) != (divisor < 0))) {
-            cociente--;
-        }
-        resto = dividendo - (cociente * divisor);
-
-        actualizarCC(registros, cociente);
-        registros[AC] = resto;
-        set(registros, memoria, registros[OP1], cociente, tablaSegmentos);
-    } else {
-        printf("ERROR: division por cero\n");
-        STOP(registros, memoria, tablaSegmentos);
-    }
-}
-*/
 void CMP(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
     int resultado;
     resultado = get(registros[OP1],registros,memoria,tablaSegmentos) - get(registros[OP2],registros,memoria,tablaSegmentos);
@@ -325,7 +301,7 @@ void PUSH(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[])
     }
 }
 void POP(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
-    int32_t operando_memoria = 0x0  |(0x7 << 16); //creo un falso operando que sería el Stack Pointer
+    int32_t operando_memoria = 0x0  |(0x7 << 16) | (0x3 << 24); //creo un falso operando que sería el Stack Pointer
     int32_t valor;
     if(registros[SP] == registros[SS]){
         printf("ERROR: Stack Underflow\n");
@@ -336,6 +312,25 @@ void POP(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
         registros[SP] += 4;
         set(registros,memoria,registros[OP1],valor,tablaSegmentos);
     }
+}
+
+void CALL(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
+    /**
+     * creamos un falso operando registro que almacenaría el valor del IP y lo guardamos en el registro OP1 para que lo use la instruccion PUSH
+     * le devolvemos su valor anterior al registro OP1 y hacemos JMP
+    */
+   int32_t operando_registro = 0x0 | (0x1 << 24) | 0x3;
+   uint32_t aux = registros[OP1];
+
+   registros[OP1] = operando_registro;
+   PUSH(registros,memoria,tablaSegmentos);
+   registros[OP1] = aux;
+   JMP(registros,memoria,tablaSegmentos);
+}
+void RET(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
+   int32_t operando_registro = 0x0 | (0x1 << 24) | 0x3;
+   registros[OP1] = operando_registro;
+   POP(registros,memoria,tablaSegmentos);
 }
 void NO_ACCESIBLE(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
     printf("INSTRUCCION INVALIDA: codigo de operacion de la instruccion a ejecutar no existe\n");  // detecta uno de los 3 errores que se deben tener en cuenta segun requisitos
