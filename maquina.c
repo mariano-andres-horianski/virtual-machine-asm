@@ -25,7 +25,6 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
     char version;
     uint16_t tamanio = 0, tamanio_mem_principal=0, base, entry_offset;
     uint8_t byte_count,byte_aux;
-    *num_segmentos =0;
     *resultado = 0;
     int i;
     arch = fopen(nombre, "rb");
@@ -63,12 +62,12 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
                         if(fread(&byte_aux, 1, 1, arch) == 1){
                             tamanio = (tamanio << 8) | byte_aux;
                             if(i%2){
-                                //terminé de leer el tamaño de este segmento
-                                tablaSegmento[*num_segmentos].base = base;
-                                base += tamanio;
+                                    //terminé de leer el tamaño de este segmento
                                 if(tamanio!=0){
-                                    tablaSegmento[*num_segmentos].tamanio = tamanio;
                                     *num_segmentos += 1;
+                                    tablaSegmento[*num_segmentos].base = base;
+                                    base += tamanio;
+                                    tablaSegmento[*num_segmentos].tamanio = tamanio;
                                     registros[26 + i/2] = *num_segmentos << 16;
                                 }
                                 else{
@@ -385,6 +384,11 @@ void ejecucion(uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint8_t m
     //IP ya viene inicializado desde la lectura del encabezado
     uint16_t base = tablaSegmento[registros[CS]].base;
     uint16_t tamanio = tablaSegmento[registros[CS]].tamanio;
+    /**
+     * queda por hacer PUSH *argv, PUSH argc y PUSH -1 si se mandaron parámetros
+     * Luego, si no se mandó ningún parámetro sería PUSH -1, PUSH 0 y PUSH -1
+     * tengo que crear los mock operands y llamar a esas funciones
+    */
     
     leerInstrucciones(memoria[registros[IP]], memoria, registros, tablaSegmento);
     while (registros[IP] != 0xFFFFFFFF && registros[IP] < base+tamanio ){
