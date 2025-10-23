@@ -19,7 +19,7 @@ static void mostrarHexa(uint8_t instruccion[], uint8_t inicio, uint8_t fin) {
     }
 }
 
-void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSegmento[ENT], uint8_t memoria[MEM], int *resultado, uint8_t *num_segmentos){
+void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSegmento[ENT], uint8_t memoria[], int *resultado, uint8_t *num_segmentos){
     FILE *arch;
     char ident[6];
     char version;
@@ -380,7 +380,7 @@ void set(uint32_t registros[], uint8_t memoria[], uint32_t operando1, int32_t op
     }
 }
 
-void ejecucion(uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint8_t memoria[MEM]){
+void ejecucion(uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint8_t memoria[]){
     //IP ya viene inicializado desde la lectura del encabezado
     uint16_t base = tablaSegmento[registros[CS]].base;
     uint16_t tamanio = tablaSegmento[registros[CS]].tamanio;
