@@ -429,6 +429,55 @@ void generar_imagen(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSe
         fwrite(memoria,1,tamMemoria,archivoVMI);
         fclose(archivoVMI);
     }
-    
+}
 
+uint8_t detectarVersion(char *nombre) {
+    FILE *arch = fopen(nombre, "rb");
+    uint8_t version = 0;
+    if (arch) {
+        fseek(arch, 5, SEEK_SET);
+        fread(&version, sizeof(uint8_t), 1, arch);
+        fclose(arch);
+    }
+    return version;
+}
+
+void construirParamSegment(uint8_t *memoria, char *argv[], int argc_param, uint32_t *tamano_param_segment) {
+    uint32_t offset = 0;    // donde escribir el proximo string
+    uint32_t *punteros = NULL;  // punteros de 4 bytes
+    int i, len;
+
+    punteros = (uint32_t *)malloc(argc_param * sizeof(uint32_t));
+    if (!punteros) {
+        printf("Error: no se pudo reservar memoria para punteros de Param Segment\n");
+        *tamano_param_segment = 0;
+    }
+    else{
+        for (i = 0; i < argc_param; i++) {
+            size_t len = strlen(argv[i]) + 1; // +1 para el terminador '\0'
+            len = 0;
+            while (argv[i][len] != '\0')
+                len++;
+            len++; //para el /0
+            memcpy(memoria + offset, argv[i], len);
+            punteros[i] = offset; //offset del string
+            offset += len;
+        }
+
+        // agrego el arreglo argv de punteros al final
+        for (i = 0; i < argc_param; i++) {
+            uint32_t ptr_val = (0x0000 << 16) | (punteros[i] & 0xFFFF); //los primeros 16 bits que son siempre cero | 16 bits menos significativos (offset)
+            // escribo los 4 bytes en big-endian
+            memoria[offset + 0] = (ptr_val >> 24) & 0xFF; // byte mas significativo
+            memoria[offset + 1] = (ptr_val >> 16) & 0xFF;
+            memoria[offset + 2] = (ptr_val >> 8) & 0xFF;
+            memoria[offset + 3] = ptr_val & 0xFF; // byte menos significativo
+
+            offset += 4;
+        }
+
+        *tamaño_param_segment = offset;
+        free(punteros);
+    }
+    
 }
