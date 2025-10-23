@@ -40,6 +40,8 @@ uint8_t get_segmento(uint8_t cod_reg, uint32_t registros[], infoSegmento tablaSe
 void set_segmento_registro(uint32_t registros[],uint32_t operando1, int32_t operando2,uint8_t reg);
 void generar_imagen(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]);
 void detectarVersion(char *nombre);
+void construirParamSegment(uint8_t *memoria, char *argv[], int argc_param, uint32_t *tamano_param_segment);
+void disassemblerMV2(uint8_t memoria[], infoSegmento tablaSegmentos[], uint32_t registros[]);
 
 void RND(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]);
 void SYS(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]);
