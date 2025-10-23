@@ -69,7 +69,7 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
                                 if(tamanio!=0){
                                     tablaSegmento[*num_segmentos].tamanio = tamanio;
                                     *num_segmentos += 1;
-                                    registros[26 + i/2] = base;
+                                    registros[26 + i/2] = *num_segmentos << 16;
                                 }
                                 else{
                                     registros[26 + i/2] = 0xFFFFFFFF;
@@ -82,7 +82,7 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
                             entry_offset = (entry_offset << 8) | byte_aux;
                             if(read(&byte_aux, 1, 1, arch)){
                                 entry_offset = (entry_offset << 8) | byte_aux;
-                                registros[IP] = (registros[CS] << 16) | entry_offset;
+                                registros[IP] = registros[CS] | entry_offset;
                             }
                         }
                     }
@@ -155,7 +155,6 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
                                 }
                             }
                             
-                            registros[IP] = (registros[CS] << 16) | entry_offset;
                             *resultado = 1;
                         }
                                 
@@ -195,7 +194,7 @@ void debug_registros(uint32_t registros[]) {
 void operacion_memoria(uint32_t registros[], uint8_t memoria[], uint32_t direccion, int32_t valor, uint8_t tipo_operacion, uint8_t cantBytes, infoSegmento tablasegmento[], uint32_t segmento){
     //acá se ejecutan las escrituras o lecturas del DS
     int i;
-    registros[LAR] = (segmento << 16) | direccion;
+    registros[LAR] = segmento| direccion;
     registros[MBR] = valor;
     calcDirFisica(tablasegmento,registros,cantBytes);
     if(registros[IP] == 0xFFFFFFFF) {
@@ -317,12 +316,12 @@ void leerInstrucciones(uint8_t instruccion, uint8_t memoria[], uint32_t registro
         }
     }
 }
-uint8_t get_segmento(uint8_t cod_reg, uint32_t registros[], infoSegmento tablaSegmentos[]){
+uint32_t get_segmento(uint8_t cod_reg, uint32_t registros[], infoSegmento tablaSegmentos[]){
     int i = 0;
     if(cod_reg < CS && cod_reg != BP && cod_reg != SP) cod_reg = CS; //El codigo de registro es uno de los de uso general
     while(tablaSegmentos[i].base != registros[cod_reg])
         i++;
-    return i;
+    return i << 16;
 }
 int32_t get(uint32_t operando,uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
     // considerar caso de la funcion SYS donde la cantidad de bytes es impredecible
@@ -383,8 +382,7 @@ void set(uint32_t registros[], uint8_t memoria[], uint32_t operando1, int32_t op
 }
 
 void ejecucion(uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint8_t memoria[MEM]){
-
-    registros[IP] = registros[CS];
+    //IP ya viene inicializado desde la lectura del encabezado
     uint16_t base = tablaSegmento[registros[CS]].base;
     uint16_t tamanio = tablaSegmento[registros[CS]].tamanio;
     

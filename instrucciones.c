@@ -20,7 +20,7 @@ void SYS(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
                 for(j = 0; j < cantBytes; j++){
                     byteActual =  (valor >> ((cantBytes - 1 - j) * 8)) & 0xFF;
                     //llamamos a operacion memoria y no a set para no escribir exclusivamente 4 bytes de golpe
-                    operacion_memoria(registros,memoria,registros[EDX]+i*cantBytes+j, byteActual, ESCRITURA, 1, tablaSegmentos, get_segmento(DS,registros,tablaSegmentos));
+                    operacion_memoria(registros,memoria,registros[EDX]+i*cantBytes+j, byteActual, ESCRITURA, 1, tablaSegmentos, registros[DS]);
                 }
                 printf("[%04x]: ",(registros[MAR] & 0x0000FFFF) - cantBytes + 1);
                 if((modo_lectura & 0x10) != 0){
@@ -62,7 +62,7 @@ void SYS(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
                 valor = 0;
                 for(j = 0; j < cantBytes; j++){
                     //escribimos byte a byte, pasamos 0 en el valor para asegurarnos que el MBR va a estar limpio
-                    operacion_memoria(registros,memoria,registros[EDX]+i*cantBytes+j, 0, LECTURA, 1, tablaSegmentos, get_segmento(DS,registros,tablaSegmentos));
+                    operacion_memoria(registros,memoria,registros[EDX]+i*cantBytes+j, 0, LECTURA, 1, tablaSegmentos, registros[DS]);
                     byteActual = registros[MBR];
                     valor = valor | (byteActual << ((cantBytes - 1 - j) * 8));
                 }
@@ -102,27 +102,27 @@ void SYS(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
             if(cantCaracteres != -1)
                 for(i=0; i<cantCaracteres; i++){ 
                     caracter = getchar();
-                    operacion_memoria(registros,memoria,registros[EDX]+i, caracter, ESCRITURA, 1, tablaSegmentos, get_segmento(DS,registros,tablaSegmentos));
+                    operacion_memoria(registros,memoria,registros[EDX]+i, caracter, ESCRITURA, 1, tablaSegmentos, registros[DS]);
                 }
             else {
                 caracter = getchar();
                 i=0;
                 while(caracter != '\n'){
-                    operacion_memoria(registros,memoria,registros[EDX]+i, caracter, ESCRITURA, 1, tablaSegmentos, get_segmento(DS,registros,tablaSegmentos));
+                    operacion_memoria(registros,memoria,registros[EDX]+i, caracter, ESCRITURA, 1, tablaSegmentos, registros[DS]);
                     caracter = getchar();
                     i++;
                 }
             }
-            operacion_memoria(registros,memoria,registros[EDX]+i,'\0', ESCRITURA, 1, tablaSegmentos, get_segmento(DS,registros,tablaSegmentos));
+            operacion_memoria(registros,memoria,registros[EDX]+i,'\0', ESCRITURA, 1, tablaSegmentos, registros[DS]);
         }
         case 0x4: {
             i = 0;
-            operacion_memoria(registros,memoria,registros[EDX], 0, LECTURA, 1, tablaSegmentos, get_segmento(DS,registros,tablaSegmentos));
+            operacion_memoria(registros,memoria,registros[EDX], 0, LECTURA, 1, tablaSegmentos, registros[DS]);
             char caracter = registros[MBR] & 0xFF;
             while(caracter != '\0'){
                 printf("%c",caracter);
                 i++;
-                operacion_memoria(registros,memoria,registros[EDX]+i, 0, LECTURA, 1, tablaSegmentos, get_segmento(DS,registros,tablaSegmentos));
+                operacion_memoria(registros,memoria,registros[EDX]+i, 0, LECTURA, 1, tablaSegmentos, registros[DS]);
                 caracter = registros[MBR] & 0xFF;
             } 
         break;
@@ -297,7 +297,7 @@ void PUSH(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[])
         STOP(registros,memoria,tablaSegmentos);
     }
     else{
-        operacion_memoria(registros, memoria, registros[SP], get(registros[OP1],registros,memoria,tablaSegmentos), ESCRITURA, 4, tablaSegmentos, get_segmento(SS,registros,tablaSegmentos));
+        operacion_memoria(registros, memoria, registros[SP], get(registros[OP1],registros,memoria,tablaSegmentos), ESCRITURA, 4, tablaSegmentos, registros[SS]);
     }
 }
 void POP(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
