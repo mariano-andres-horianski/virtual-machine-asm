@@ -195,7 +195,7 @@ void debug_registros(uint32_t registros[]) {
 void operacion_memoria(uint32_t registros[], uint8_t memoria[], uint32_t direccion, int32_t valor, uint8_t tipo_operacion, uint8_t cantBytes, infoSegmento tablasegmento[], uint32_t segmento){
     //acá se ejecutan las escrituras o lecturas del DS
     int i;
-    registros[LAR] = segmento | direccion;
+    registros[LAR] = (segmento << 16) | direccion;
     registros[MBR] = valor;
     calcDirFisica(tablasegmento,registros,cantBytes);
     if(registros[IP] == 0xFFFFFFFF) {
