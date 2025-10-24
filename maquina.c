@@ -6,7 +6,11 @@ void inicioTablaSegmento(infoSegmento tabla[],uint16_t tamanioCod){
     tabla[1].base = tamanioCod;
     tabla[1].tamanio = MEM - tamanioCod;
 }
-
+void inicioRegistro(uint32_t reg[]){
+    reg[CS] = 0x00000000;
+    reg[DS] = 0x00010000;
+    reg[IP] = reg [CS];
+}
 
 // Las posiciones no inicializadas automáticamente quedan como NULL
 void (*instrucciones[32])(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]) =
