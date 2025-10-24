@@ -482,7 +482,7 @@ void construirParamSegment(uint8_t *memoria, char *argv[], int argc_param, uint3
             offset += 4;
         }
 
-        *tamaño_param_segment = offset;
+        *tamano_param_segment = offset;
         free(punteros);
     }
     
