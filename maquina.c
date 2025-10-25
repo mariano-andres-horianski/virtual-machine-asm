@@ -69,11 +69,11 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
                             if(i%2){
                                     //terminé de leer el tamaño de este segmento
                                 if(tamanio!=0){
-                                    *num_segmentos += 1;
                                     tablaSegmento[*num_segmentos].base = base;
                                     base += tamanio;
                                     tablaSegmento[*num_segmentos].tamanio = tamanio;
                                     registros[26 + i/2] = *num_segmentos << 16;
+                                    *num_segmentos += 1;
                                 }
                                 else{
                                     registros[26 + i/2] = 0xFFFFFFFF;
@@ -236,12 +236,26 @@ void calcDirFisica(infoSegmento tablaSegmento[ENT],uint32_t registros[],int cant
         return;
     }
 }
-uint32_t get_segmento_registro(uint32_t operando,uint32_t registros[]){
+uint32_t get_segmento_registro(uint32_t operando, uint32_t registros[]) {
     uint8_t registro = operando & 0x1F;
     uint8_t segmento_registro = (operando >> 6) & 0x3;
+    uint32_t valor = registros[registro];
+    uint32_t resultado=0;
 
-    return registros[registro] >> (4-segmento_registro);
+    switch (segmento_registro) {
+        case 0: resultado=valor & 0xFFFFFFFF; 
+                break;
+        case 1: resultado=valor & 0xFF;
+                break;
+        case 2: resultado=(valor >> 8) & 0xFF;
+                break;
+        case 3: resultado=valor & 0xFFFF;
+                break;
+    }
+
+    return resultado;
 }
+
 void operandos(uint32_t *lectura,uint32_t tipo,uint32_t registros[],uint8_t memoria[]){
     //lectura del valor de los operandos
     *lectura = 0;

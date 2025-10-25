@@ -75,7 +75,7 @@ int main(int argc, char *argv[]) {
         tablaSegmento[0].tamanio = tamParamSegment;
         registros[31] = 0x00000000;
 
-        //num_segmentos = 1;
+        num_segmentos = 1;
     }
 
 

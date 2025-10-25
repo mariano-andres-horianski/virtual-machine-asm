@@ -58,6 +58,9 @@ void disassemblerMV2(uint8_t memoria[], infoSegmento tablaSegmentos[], uint32_t 
     uint32_t operando1, operando2, sector; 
     char car;
 
+    uint8_t codRegMem;
+    int16_t offsetMem;
+
     // Recorrer Const Segment y mostrar las cadenas
     i = baseConst;
     while (i < baseConst + tamConst) {
@@ -152,7 +155,9 @@ void disassemblerMV2(uint8_t memoria[], infoSegmento tablaSegmentos[], uint32_t 
             operando1=operando1 << 2;
             operando1=operando1 >> 2; //como es unsigned pone cero en los primeros 2 bits
             if (tipo1 == 3){ //memoria
-                sector=sector >> 22;
+                codRegMem = (operando1 >> 16) & 0x1F;
+                offsetMem=(operando1&0xFFFF);
+                sector=(sector >> 22)&0x3;
                 switch(sector){
                     case 0: printf("l");
                             break;
@@ -161,7 +166,13 @@ void disassemblerMV2(uint8_t memoria[], infoSegmento tablaSegmentos[], uint32_t 
                     case 3: printf("b");
                             break;
                 }
-                printf("[%s+%u]", nombresRegistros[(operando1 >> 8) & 0x1F], operando1 & 0xFF);
+                if (offsetMem>0)
+                    printf("[%s+%d]", nombresRegistros[codRegMem], offsetMem);
+                else
+                    if (offsetMem<0)
+                        printf("[%s%d]", nombresRegistros[codRegMem], offsetMem); //el - se pone solo
+                    else
+                        printf("[%s]", nombresRegistros[codRegMem]);
             }
             else 
                 if (tipo1 == 1){ //registro
@@ -190,11 +201,15 @@ void disassemblerMV2(uint8_t memoria[], infoSegmento tablaSegmentos[], uint32_t 
         if (tipo2) {
             if (tipo1)
                 printf(", ");
+            else 
+                printf("    ");
             sector=operando2;
             operando2=operando2 << 2;
-            operando2=operando2 >> 2;
+            operando2=operando2 >> 2; //como es unsigned pone cero en los primeros 2 bits
             if (tipo2 == 3){ //memoria
-                sector=sector >> 22;
+                codRegMem = (operando2 >> 16) & 0x1F;
+                offsetMem=(operando2&0xFFFF);
+                sector=(sector >> 22)&0x3;
                 switch(sector){
                     case 0: printf("l");
                             break;
@@ -203,7 +218,13 @@ void disassemblerMV2(uint8_t memoria[], infoSegmento tablaSegmentos[], uint32_t 
                     case 3: printf("b");
                             break;
                 }
-                printf("[%s+%u]", nombresRegistros[(operando2 >> 8) & 0x1F], operando2 & 0xFF);
+                if (offsetMem>0)
+                    printf("[%s+%d]", nombresRegistros[codRegMem], offsetMem);
+                else
+                    if (offsetMem<0)
+                        printf("[%s%d]", nombresRegistros[codRegMem], offsetMem); //el - se pone solo
+                    else
+                        printf("[%s]", nombresRegistros[codRegMem]);
             }
             else 
                 if (tipo2 == 1){ //registro
