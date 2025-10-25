@@ -66,19 +66,21 @@ int main(int argc, char *argv[]) {
     }
 
     tamParamSegment = 0;
+    registros[31] = 0xFFFFFFFF;
     if (indiceParametros != -1) {
         argc_param = argc - indiceParametros;
         construirParamSegment(memoria, &argv[indiceParametros], argc_param, &tamParamSegment);
 
         tablaSegmento[0].base = 0x0000;
         tablaSegmento[0].tamanio = tamParamSegment;
+        registros[31] = 0x00000000;
 
-        num_segmentos = 1;
+        //num_segmentos = 1;
     }
 
 
     version = detectarVersion(nombreArchivo);
-    leerEncabezado(nombreArchivo, registros, tablaSegmento, memoria, &resultado, &num_segmentos);
+    leerEncabezado(nombreArchivo, registros, tablaSegmento, memoria, &resultado, &num_segmentos, tamParamSegment);
 
     if (!resultado) {
         printf("No se pudo ejecutar el programa.\n");

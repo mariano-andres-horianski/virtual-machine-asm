@@ -23,7 +23,7 @@ static void mostrarHexa(uint8_t instruccion[], uint8_t inicio, uint8_t fin) {
     }
 }
 
-void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSegmento[ENT], uint8_t memoria[], int *resultado, uint8_t *num_segmentos){
+void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSegmento[ENT], uint8_t memoria[], int *resultado, uint8_t *num_segmentos, uint32_t tamano_param_segment){
     FILE *arch;
     char ident[6];
     char version;
@@ -61,7 +61,8 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
                     }
                 }
                 if(version == 2){
-                    base = 0;
+                    base = tamano_param_segment;
+                    tamanio_mem_principal = tamano_param_segment;
                     for(i=0;i<10;i++){//leo 5 números (son 5 segmentos quitando el param) de 2 bytes cada uno
                         if(fread(&byte_aux, 1, 1, arch) == 1){
                             tamanio = (tamanio << 8) | byte_aux;
@@ -457,10 +458,10 @@ void construirParamSegment(uint8_t *memoria, char *argv[], int argc_param, uint3
     if (!punteros) {
         printf("Error: no se pudo reservar memoria para punteros de Param Segment\n");
         *tamano_param_segment = 0;
+        return;
     }
     else{
         for (i = 0; i < argc_param; i++) {
-            size_t len = strlen(argv[i]) + 1; // +1 para el terminador '\0'
             len = 0;
             while (argv[i][len] != '\0')
                 len++;
