@@ -14,7 +14,7 @@ void inicioRegistro(uint32_t reg[]){
 
 // Las posiciones no inicializadas automáticamente quedan como NULL
 void (*instrucciones[32])(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]) =
-{SYS,JMP,JZ,JP,JN,JNZ,JNP,JNN,NOT,NO_ACCESIBLE,NO_ACCESIBLE,NO_ACCESIBLE,NO_ACCESIBLE,NO_ACCESIBLE,NO_ACCESIBLE,STOP,MOV,ADD,SUB,MUL,DIV,CMP,SHL,SHR,SAR,AND,OR,XOR,SWAP,LDL,LDH,RND};
+{SYS,JMP,JZ,JP,JN,JNZ,JNP,JNN,NOT,NO_ACCESIBLE,NO_ACCESIBLE,PUSH,POP,CALL,RET,STOP,MOV,ADD,SUB,MUL,DIV,CMP,SHL,SHR,SAR,AND,OR,XOR,SWAP,LDL,LDH,RND};
 
 static void mostrarHexa(uint8_t instruccion[], uint8_t inicio, uint8_t fin) {
     uint8_t i;
@@ -59,7 +59,6 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
                         inicioRegistros(registros);
                         *resultado = 1;
                     }
-                }
                 if(version == 2){
                     base = 0;
                     for(i=0;i<10;i++){//leo 5 números (son 5 segmentos quitando el param) de 2 bytes cada uno
@@ -78,6 +77,10 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
                                     registros[26 + i/2] = 0xFFFFFFFF;
                                 }
                                 tamanio_mem_principal += tamanio;
+                                if(tamanio_mem_principal > MEM){
+                                    printf("ERROR: Memoria insuficiente\n");
+                                    return;
+                                }
                                 tamanio = 0;
                             }
                         }
@@ -86,6 +89,7 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
                             if(read(&byte_aux, 1, 1, arch)){
                                 entry_offset = (entry_offset << 8) | byte_aux;
                                 registros[IP] = registros[CS] | entry_offset;
+                                registros[SP] = tablaSegmento[registros[SS]].base + tablaSegmento[registros[SS]].tamanio;
                             }
                         }
                     }
@@ -105,7 +109,8 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
                         }
                     }
                     *resultado = 1;
-                }
+                }    
+            }
             else{
                 if(strcmp(ident,"VMI25") == 0){
                     if(fread(&version, sizeof(char), 1, arch) == 1){
@@ -125,6 +130,7 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
                                             registros[i] = (registros[i] << 8) | byte_aux;
                                         }
                                     }
+                                    registros[i] = registros[i] | (i << 16);//si guarda el dato normalmente (en el byte más bajo) lo muevo al más alto para usos posteriores
                                 }
                                 //leer la tabla de descriptores de segmentos
                                 //son 8 celdas de 4 byts
@@ -383,8 +389,27 @@ void set(uint32_t registros[], uint8_t memoria[], uint32_t operando1, int32_t op
         operacion_memoria(registros, memoria, direccion, operando2, ESCRITURA, 4,tablaSegmentos, get_segmento(cod_reg, registros, tablaSegmentos));
     }
 }
-
-void ejecucion(uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint8_t memoria[]){
+void inicializar_stack(uint32_t registros[], uint8_t memoria[], infoSegmento tablaSegmentos[], int argc, char* argv[]){
+    const int cantBytes = 4;
+    uint32_t puntero_args = (argc == 0) ? 0xFFFFFFFF : (uint32_t)*argv;
+    uint32_t cant_args = argc;
+    int i;
+    registros[SP] -= 4;
+    // en la posicion más abajo del stack (el fondo de la pila) pongo el puntero al inicio del arreglo de argumentos
+    for (i = 0; i < cantBytes; i++) {
+        memoria[registros[SP] + i] = (puntero_args >> (8 * (cantBytes - 1 - i))) & 0x000000FF;
+    }
+    // en la segunda posicion del stack pongo la cantidad de argumentos
+    registros[SP] -= 4;
+    for (i = 0; i < cantBytes; i++) {
+        memoria[registros[SP] + i] = (cant_args >> (8 * (cantBytes - 1 - i))) & 0x000000FF;
+    }
+    registros[SP] -= 4;
+    for (i = 0; i < cantBytes; i++) {
+        memoria[registros[SP] + i] = 0xFF;
+    }
+}
+void ejecucion(uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint8_t memoria[], int argc, char* argv[]){
     //IP ya viene inicializado desde la lectura del encabezado
     uint16_t base = tablaSegmento[registros[CS]].base;
     uint16_t tamanio = tablaSegmento[registros[CS]].tamanio;
@@ -393,7 +418,7 @@ void ejecucion(uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint8_t m
      * Luego, si no se mandó ningún parámetro sería PUSH -1, PUSH 0 y PUSH -1
      * tengo que crear los mock operands y llamar a esas funciones
     */
-    
+    inicializar_stack(registros,memoria,tablaSegmento,argc,argv);
     leerInstrucciones(memoria[registros[IP]], memoria, registros, tablaSegmento);
     while (registros[IP] != 0xFFFFFFFF && registros[IP] < base+tamanio ){
        leerInstrucciones(memoria[registros[IP]], memoria, registros, tablaSegmento);
