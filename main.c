@@ -12,7 +12,7 @@ int main(int argc, char *argv[]) {
     uint32_t registros[REG];
     infoSegmento tablaSegmento[ENT];
     uint8_t num_segmentos = 0;
-    int resultado = 0;
+    int resultado = 0,i;
     uint8_t version = 0;
 
     char *archivoVMX = NULL;
@@ -33,7 +33,7 @@ int main(int argc, char *argv[]) {
     }
 
     //Procesamiento de argumentos
-    for (int i = 1; i < argc; i++) {
+    for (i = 1; i < argc; i++) {
         if (strstr(argv[i], ".vmx"))
             archivoVMX = argv[i];
         else 
@@ -102,7 +102,7 @@ int main(int argc, char *argv[]) {
 
     if (indiceParametros != -1) {
         printf("Parámetros pasados al programa:\n");
-        for (int i = indiceParametros; i < argc; i++)
+        for (i = indiceParametros; i < argc; i++)
             printf("  %s\n", argv[i]);
     }
 

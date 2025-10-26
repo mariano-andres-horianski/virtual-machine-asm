@@ -12,15 +12,19 @@
 #define REG 32
 
 int imagenVMI;
+
+
 typedef enum {
     LAR = 0,MAR,MBR,IP,OPC,OP1,OP2,SP,BP,
     EAX = 10,EBX,ECX,EDX,EEX,EFX,AC,CC,
     CS = 26,DS,ES,SS,KS,PS } nombres_registros;
 
+
 typedef struct {
     unsigned short base;
     unsigned short tamanio; } infoSegmento;              //unsigned short tiene exact. 2 bytes
 
+void mostrarHexa(uint8_t instruccion[], uint8_t inicio, uint8_t fin);
 void debug_memoria(uint8_t memoria[], uint32_t direccion, int cantBytes);
 void debug_registros(uint32_t registros[]);
 void inicioRegistro(uint32_t reg[]);

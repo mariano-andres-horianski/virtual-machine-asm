@@ -1,5 +1,5 @@
 #include "maquina.h"
-const char *nombresRegistros[REG] = {
+const char *nombresRegistrosMV2[REG] = {
     [LAR] = "LAR",
     [MAR] = "MAR",
     [MBR] = "MBR",
@@ -27,7 +27,7 @@ const char *nombresRegistros[REG] = {
     [PS]  = "PS"
 };
 
-const char *mnemonicos[32] = { //arreglo de string, estan en orden para que coincidan los indices
+const char *mnemonicosMV2[32] = { //arreglo de string, estan en orden para que coincidan los indices
     "SYS", "JMP", "JZ", "JP", "JN", "JNZ", "JNP", "JNN", "NOT",
     "XXX", "XXX", "PUSH", "POP", "CALL", "RET", //no hay mnemonicos para 0x09 y 0x0A
     "STOP", "MOV", "ADD", "SUB", "MUL", "DIV", "CMP", "SHL",
@@ -137,7 +137,7 @@ void disassemblerMV2(uint8_t memoria[], infoSegmento tablaSegmentos[], uint32_t 
         for (; i < 8; i++) 
             printf("   "); // alineacion
 
-        printf("|  %s", (op < 32) ? mnemonicos[op] : "???");
+        printf("|  %s", (op < 32) ? mnemonicosMV2[op] : "???");
 
         // Calcular operandos
         operando1 = 0;
@@ -167,20 +167,20 @@ void disassemblerMV2(uint8_t memoria[], infoSegmento tablaSegmentos[], uint32_t 
                             break;
                 }
                 if (offsetMem>0)
-                    printf("[%s+%d]", nombresRegistros[codRegMem], offsetMem);
+                    printf("[%s+%d]", nombresRegistrosMV2[codRegMem], offsetMem);
                 else
                     if (offsetMem<0)
-                        printf("[%s%d]", nombresRegistros[codRegMem], offsetMem); //el - se pone solo
+                        printf("[%s%d]", nombresRegistrosMV2[codRegMem], offsetMem); //el - se pone solo
                     else
-                        printf("[%s]", nombresRegistros[codRegMem]);
+                        printf("[%s]", nombresRegistrosMV2[codRegMem]);
             }
             else 
                 if (tipo1 == 1){ //registro
                     if (operando1>=EAX&&operando1<=EFX){
                         sector=sector >> 6;
-                        car=nombresRegistros[operando1][1];
+                        car=nombresRegistrosMV2[operando1][1];
                         switch(sector){
-                            case 0: printf("%s", nombresRegistros[operando1]);
+                            case 0: printf("%s", nombresRegistrosMV2[operando1]);
                                     break;
                             case 1: printf("%cL",car);
                                     break;
@@ -191,7 +191,7 @@ void disassemblerMV2(uint8_t memoria[], infoSegmento tablaSegmentos[], uint32_t 
                         }
                     }
                     else
-                        printf("%s", nombresRegistros[operando1]);    
+                        printf("%s", nombresRegistrosMV2[operando1]);    
                 }
                 else 
                     if (tipo1 == 2) //inmediato
@@ -219,20 +219,20 @@ void disassemblerMV2(uint8_t memoria[], infoSegmento tablaSegmentos[], uint32_t 
                             break;
                 }
                 if (offsetMem>0)
-                    printf("[%s+%d]", nombresRegistros[codRegMem], offsetMem);
+                    printf("[%s+%d]", nombresRegistrosMV2[codRegMem], offsetMem);
                 else
                     if (offsetMem<0)
-                        printf("[%s%d]", nombresRegistros[codRegMem], offsetMem); //el - se pone solo
+                        printf("[%s%d]", nombresRegistrosMV2[codRegMem], offsetMem); //el - se pone solo
                     else
-                        printf("[%s]", nombresRegistros[codRegMem]);
+                        printf("[%s]", nombresRegistrosMV2[codRegMem]);
             }
             else 
                 if (tipo2 == 1){ //registro
                     if (operando2>=EAX&&operando2<=EFX){
                         sector=sector >> 6;
-                        car=nombresRegistros[operando2][1];
+                        car=nombresRegistrosMV2[operando2][1];
                         switch(sector){
-                            case 0: printf("%s", nombresRegistros[operando2]);
+                            case 0: printf("%s", nombresRegistrosMV2[operando2]);
                                     break;
                             case 1: printf("%cL",car);
                                     break;
@@ -243,7 +243,7 @@ void disassemblerMV2(uint8_t memoria[], infoSegmento tablaSegmentos[], uint32_t 
                         }
                     }
                     else
-                        printf("%s", nombresRegistros[operando2]);    
+                        printf("%s", nombresRegistrosMV2[operando2]);    
                 }
                 else 
                     if (tipo2 == 2) //inmediato

@@ -16,7 +16,7 @@ void inicioRegistro(uint32_t reg[]){
 void (*instrucciones[32])(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]) =
 {SYS,JMP,JZ,JP,JN,JNZ,JNP,JNN,NOT,NO_ACCESIBLE,NO_ACCESIBLE,PUSH,POP,CALL,RET,STOP,MOV,ADD,SUB,MUL,DIV,CMP,SHL,SHR,SAR,AND,OR,XOR,SWAP,LDL,LDH,RND};
 
-static void mostrarHexa(uint8_t instruccion[], uint8_t inicio, uint8_t fin) {
+void mostrarHexa(uint8_t instruccion[], uint8_t inicio, uint8_t fin) {
     uint8_t i;
     for (i = inicio; i < fin; i++) {
         printf("%02X ", instruccion[i]);
@@ -30,7 +30,7 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
     uint16_t tamanio = 0, tamanio_mem_principal=0, base, entry_offset;
     uint8_t byte_count,byte_aux;
     *resultado = 0;
-    int i;
+    int i,j;
     arch = fopen(nombre, "rb");
     
     if(arch != NULL){
@@ -56,7 +56,7 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
                             fread(memoria, sizeof(uint8_t), tamanio, arch);
                         }
                         inicioTablaSegmento(tablaSegmento,tamanio);
-                        inicioRegistros(registros);
+                        inicioRegistro(registros);
                         *resultado = 1;
                     }
                 if(version == 2){
@@ -126,7 +126,7 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
                                 //los registros vienen dados en el orden del vector de registros (el primero es el registro 0, el ultimo el registro 31)
                                 //el primer byte de la celda es el primer (mas a la izquierda) byte del registro, el segundo es el segundo byte del registro y asi
                                 for(i = 0; i < 32; i++){
-                                    for(int j = 0; j < 4; j++){
+                                    for(j = 0; j < 4; j++){
                                         if(fread(&byte_aux, 1, 1, arch) == 1){
                                             registros[i] = (registros[i] << 8) | byte_aux;
                                         }
