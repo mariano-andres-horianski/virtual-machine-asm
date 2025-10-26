@@ -131,7 +131,7 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
                                             registros[i] = (registros[i] << 8) | byte_aux;
                                         }
                                     }
-                                    registros[i] = registros[i] | (i << 16);//si guarda el dato normalmente (en el byte más bajo) lo muevo al más alto para usos posteriores
+                                    if (registros[i] != 0xFFFFFFFF) registros[i] = registros[i] | (i << 16);//si guarda el dato normalmente (en el byte más bajo) lo muevo al más alto para usos posteriores
                                 }
                                 //leer la tabla de descriptores de segmentos
                                 //son 8 celdas de 4 byts
