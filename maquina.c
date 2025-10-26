@@ -23,7 +23,7 @@ static void mostrarHexa(uint8_t instruccion[], uint8_t inicio, uint8_t fin) {
     }
 }
 
-void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSegmento[ENT], uint8_t memoria[], int *resultado, uint8_t *num_segmentos){
+void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSegmento[ENT], uint8_t memoria[], int *resultado, uint8_t *num_segmentos, uint32_t tamano_param_segment){
     FILE *arch;
     char ident[6];
     char version;
@@ -60,18 +60,19 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
                         *resultado = 1;
                     }
                 if(version == 2){
-                    base = 0;
+                    base = tamano_param_segment;
+                    tamanio_mem_principal = tamano_param_segment;
                     for(i=0;i<10;i++){//leo 5 números (son 5 segmentos quitando el param) de 2 bytes cada uno
                         if(fread(&byte_aux, 1, 1, arch) == 1){
                             tamanio = (tamanio << 8) | byte_aux;
                             if(i%2){
                                     //terminé de leer el tamaño de este segmento
                                 if(tamanio!=0){
-                                    *num_segmentos += 1;
                                     tablaSegmento[*num_segmentos].base = base;
                                     base += tamanio;
                                     tablaSegmento[*num_segmentos].tamanio = tamanio;
                                     registros[26 + i/2] = *num_segmentos << 16;
+                                    *num_segmentos += 1;
                                 }
                                 else{
                                     registros[26 + i/2] = 0xFFFFFFFF;
@@ -241,12 +242,26 @@ void calcDirFisica(infoSegmento tablaSegmento[ENT],uint32_t registros[],int cant
         return;
     }
 }
-uint32_t get_segmento_registro(uint32_t operando,uint32_t registros[]){
+uint32_t get_segmento_registro(uint32_t operando, uint32_t registros[]) {
     uint8_t registro = operando & 0x1F;
     uint8_t segmento_registro = (operando >> 6) & 0x3;
+    uint32_t valor = registros[registro];
+    uint32_t resultado=0;
 
-    return registros[registro] >> (4-segmento_registro);
+    switch (segmento_registro) {
+        case 0: resultado=valor & 0xFFFFFFFF; 
+                break;
+        case 1: resultado=valor & 0xFF;
+                break;
+        case 2: resultado=(valor >> 8) & 0xFF;
+                break;
+        case 3: resultado=valor & 0xFFFF;
+                break;
+    }
+
+    return resultado;
 }
+
 void operandos(uint32_t *lectura,uint32_t tipo,uint32_t registros[],uint8_t memoria[]){
     //lectura del valor de los operandos
     *lectura = 0;
@@ -482,10 +497,10 @@ void construirParamSegment(uint8_t *memoria, char *argv[], int argc_param, uint3
     if (!punteros) {
         printf("Error: no se pudo reservar memoria para punteros de Param Segment\n");
         *tamano_param_segment = 0;
+        return;
     }
     else{
         for (i = 0; i < argc_param; i++) {
-            size_t len = strlen(argv[i]) + 1; // +1 para el terminador '\0'
             len = 0;
             while (argv[i][len] != '\0')
                 len++;
