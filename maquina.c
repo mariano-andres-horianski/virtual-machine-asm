@@ -9,6 +9,10 @@ void inicioTablaSegmento(infoSegmento tabla[],uint16_t tamanioCod){
 void inicioRegistro(uint32_t reg[]){
     reg[CS] = 0x00000000;
     reg[DS] = 0x00010000;
+    reg[KS] = 0xFFFFFFFF;
+    reg[SS] = 0xFFFFFFFF;
+    reg[ES] = 0xFFFFFFFF;
+    reg[SP] = 0xFFFFFFFF;
     reg[IP] = reg [CS];
 }
 
@@ -433,7 +437,9 @@ void ejecucion(uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint8_t m
      * Luego, si no se mandó ningún parámetro sería PUSH -1, PUSH 0 y PUSH -1
      * tengo que crear los mock operands y llamar a esas funciones
     */
-    inicializar_stack(registros,memoria,tablaSegmento,argc,argv);
+
+    if(registros[SS] != 0xFFFFFFFF) inicializar_stack(registros,memoria,tablaSegmento,argc,argv);
+    
     leerInstrucciones(memoria[registros[IP]], memoria, registros, tablaSegmento);
     while (registros[IP] != 0xFFFFFFFF && registros[IP] < base+tamanio ){
        leerInstrucciones(memoria[registros[IP]], memoria, registros, tablaSegmento);
