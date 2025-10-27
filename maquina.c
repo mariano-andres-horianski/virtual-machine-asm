@@ -432,14 +432,9 @@ void ejecucion(uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint8_t m
     //IP ya viene inicializado desde la lectura del encabezado
     uint16_t base = tablaSegmento[registros[CS]].base;
     uint16_t tamanio = tablaSegmento[registros[CS]].tamanio;
-    /**
-     * queda por hacer PUSH *argv, PUSH argc y PUSH -1 si se mandaron parámetros
-     * Luego, si no se mandó ningún parámetro sería PUSH -1, PUSH 0 y PUSH -1
-     * tengo que crear los mock operands y llamar a esas funciones
-    */
-
-    if(registros[SS] != 0xFFFFFFFF) inicializar_stack(registros,memoria,tablaSegmento,argc,argv);
     
+    if(registros[SS] != 0xFFFFFFFF) inicializar_stack(registros,memoria,tablaSegmento,argc,argv);
+
     leerInstrucciones(memoria[registros[IP]], memoria, registros, tablaSegmento);
     while (registros[IP] != 0xFFFFFFFF && registros[IP] < base+tamanio ){
        leerInstrucciones(memoria[registros[IP]], memoria, registros, tablaSegmento);
