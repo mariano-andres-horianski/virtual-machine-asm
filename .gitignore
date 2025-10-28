@@ -4,3 +4,4 @@ ejecutables/
 *.vmx
 *.exe
 *.o
+*.asm

@@ -22,7 +22,7 @@ void SYS(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
                     //llamamos a operacion memoria y no a set para no escribir exclusivamente 4 bytes de golpe
                     operacion_memoria(registros,memoria,registros[EDX]+i*cantBytes+j, byteActual, ESCRITURA, 1, tablaSegmentos, registros[DS]);
                 }
-                printf("[%04x]: ",(registros[MAR] & 0x0000FFFF) - cantBytes + 1);
+                printf("[%04X]: ",(registros[MAR] & 0x0000FFFF) - cantBytes + 1);
                 if((modo_lectura & 0x10) != 0){
                     // binario
                     for(b = 0; b < cantBytes; b++){
@@ -66,7 +66,7 @@ void SYS(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
                     byteActual = registros[MBR];
                     valor = valor | (byteActual << ((cantBytes - 1 - j) * 8));
                 }
-                printf("[%04x]: ",(registros[MAR] & 0x0000FFFF) - cantBytes + 1);
+                printf("[%04X]: ",(registros[MAR] & 0x0000FFFF) - cantBytes + 1);
                 if((modo_lectura & 0x10) != 0){
                     for(b = 0; b < cantBytes; b++){
                         printf("%d ",valor >> ((cantBytes - 1 - b) * 8) & 0x01);//muestro el valor en binario
@@ -82,7 +82,7 @@ void SYS(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
                     printf(" ");
                 }
                 if((modo_lectura & 0x02) != 0){
-                    printf("%c",valor);
+                    //printf("%c",valor);
                     for(caracter = 0; caracter < cantBytes; caracter++){
                         printf("%c",valor >> ((cantBytes - 1 - caracter) * 8) & 0xFF);
                     }
@@ -247,7 +247,6 @@ void SAR(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
 void AND(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
     int resultado;
     resultado = get(registros[OP1],registros,memoria,tablaSegmentos) & get(registros[OP2],registros,memoria,tablaSegmentos);
-    printf("operacion AND: %d = %d & %d\n",resultado,get(registros[OP1],registros,memoria,tablaSegmentos),get(registros[OP2],registros,memoria,tablaSegmentos));
     actualizarCC(registros,resultado);
     set(registros,memoria,registros[OP1],resultado,tablaSegmentos);
 }

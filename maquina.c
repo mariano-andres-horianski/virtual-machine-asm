@@ -15,7 +15,6 @@ void inicioRegistro(uint32_t reg[]){
     reg[SP] = 0xFFFFFFFF;
     reg[IP] = reg [CS];
 }
-
 // Las posiciones no inicializadas automáticamente quedan como NULL
 void (*instrucciones[32])(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]) =
 {SYS,JMP,JZ,JP,JN,JNZ,JNP,JNN,NOT,NO_ACCESIBLE,NO_ACCESIBLE,PUSH,POP,CALL,RET,STOP,MOV,ADD,SUB,MUL,DIV,CMP,SHL,SHR,SAR,AND,OR,XOR,SWAP,LDL,LDH,RND};
@@ -46,7 +45,7 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
         fseek(arch, 0, SEEK_SET);
         
         
-        if(fread(ident, sizeof(char), 5, arch) == 5 && strcmp(ident,"VMX25") == 0){
+        if(fread(ident, sizeof(char), 5, arch) == 5){
             ident[5]='\0';
             if(strcmp(ident,"VMX25") == 0)
                 if(fread(&version, sizeof(char), 1, arch) == 1){
@@ -56,8 +55,18 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
                             if(fread(&byte_aux, 1, 1, arch) == 1){
                                 tamanio = tamanio | byte_aux;
                             }
+                            else{
+                                printf("Error al leer el tamaño del archivo\n");
+                                fclose(arch);
+                                return;
+                            }
                             //queda iniciar la tabla de segmentos y los registros para la version 1 de la VM, ver funciones en el github inicioRegistros e inicioTablaSegmento
                             fread(memoria, sizeof(uint8_t), tamanio, arch);
+                        }
+                        else{
+                            printf("Error al leer el tamaño del archivo\n");
+                            fclose(arch);
+                            return;
                         }
                         inicioTablaSegmento(tablaSegmento,tamanio);
                         inicioRegistro(registros);
@@ -181,9 +190,9 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
                     }
                 }
             }
-        fclose(arch);
     }
     }
+    
     else {
         printf("ERROR: No se pudo abrir el archivo '%s'\n", nombre);
     }
@@ -191,6 +200,11 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
     if(*resultado == 0) {
         printf("ERROR: No se pudo leer el encabezado correctamente\n");
     }
+    else{
+        printf("Encabezado leido correctamente\n");
+    }
+    
+    fclose(arch);
 }
 void debug_memoria(uint8_t memoria[], uint32_t direccion, int cantBytes) {
     printf("Memoria en [%04x]: ", direccion);
@@ -294,7 +308,7 @@ void leerInstrucciones(uint8_t instruccion, uint8_t memoria[], uint32_t registro
 
     uint32_t lectura;
     uint8_t cantByteA,cantByteB;
-
+    //printf("DEBUG: LeerInstrucciones: Instruccion byte = %02X\n", instruccion);
     registros[OPC]=instruccion & 0x1F;
     registros[OP2]=instruccion >> 6;
     cantByteB = registros[OP2];
@@ -340,23 +354,24 @@ void leerInstrucciones(uint8_t instruccion, uint8_t memoria[], uint32_t registro
                 registros[IP] = registros[IP] + cantByteA;
             }
             //Aca ya tengo OPC, OP1 y OP2 para ejecutar
+            //printf("DEBUG: Listo para ejecutar OPC=%X \n", registros[OPC]);
             instrucciones[registros[OPC]](registros,memoria,tablaSegmento);
         }
     }
 }
 uint32_t get_segmento(uint8_t cod_reg, uint32_t registros[], infoSegmento tablaSegmentos[]){
-    int i = 0;
-    if(cod_reg < CS && cod_reg != BP && cod_reg != SP) cod_reg = CS; //El codigo de registro es uno de los de uso general
-    while(tablaSegmentos[i].base != registros[cod_reg])
-        i++;
-    return i << 16;
+    
+    if(cod_reg < CS && cod_reg != BP && cod_reg != SP) cod_reg = DS; //El codigo de registro es uno de los de uso general
+    
+    return registros[cod_reg];
 }
 int32_t get(uint32_t operando,uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
     // considerar caso de la funcion SYS donde la cantidad de bytes es impredecible
     int tipo_operando = (operando >> 24) & 0x00000003;
     uint8_t cod_reg = (operando >> 16) & 0x0000001F; // en caso de que el operando sea direccion de memoria saco los 5 bits que indicarian un registro
+    uint8_t sub_segmento = (operando>>30) & 0x00000003;
     operando = operando & 0x0000FFFF;
-    uint16_t direccion = registros[cod_reg] + (int16_t)(operando & 0x0000FFFF);//le saco el codigo de registro al operando y hago el casteo por si el offset es negativo
+    uint32_t direccion = registros[cod_reg] + (int16_t)(operando & 0x0000FFFF);//le saco el codigo de registro al operando y hago el casteo por si el offset es negativo
 
     if (tipo_operando == 0x01)
         return (int32_t)get_segmento_registro(operando, registros);
@@ -370,7 +385,7 @@ int32_t get(uint32_t operando,uint32_t registros[], uint8_t memoria[],infoSegmen
         }
     else {
         //el operando es direccion de memoria
-        direccion += 4-((operando>>30) & 0x00000003);
+        direccion += 4-(4-sub_segmento);
         operacion_memoria(registros, memoria, direccion, 0, LECTURA, 4-((operando>>30) & 0x00000003), tablaSegmentos, get_segmento(cod_reg, registros, tablaSegmentos)); //4 bytes porque es el tamaño de cada celda
         return (int32_t)registros[MBR];
     }
@@ -430,12 +445,13 @@ void inicializar_stack(uint32_t registros[], uint8_t memoria[], infoSegmento tab
 }
 void ejecucion(uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint8_t memoria[], int argc, char* argv[]){
     //IP ya viene inicializado desde la lectura del encabezado
-    uint16_t base = tablaSegmento[registros[CS]].base;
-    uint16_t tamanio = tablaSegmento[registros[CS]].tamanio;
+    
+    uint16_t base = tablaSegmento[registros[CS] >> 16].base;
+    uint16_t tamanio = tablaSegmento[registros[CS] >> 16].tamanio;
     
     if(registros[SS] != 0xFFFFFFFF) inicializar_stack(registros,memoria,tablaSegmento,argc,argv);
-
     leerInstrucciones(memoria[registros[IP]], memoria, registros, tablaSegmento);
+    //registros[IP] = -1;
     while (registros[IP] != 0xFFFFFFFF && registros[IP] < base+tamanio ){
        leerInstrucciones(memoria[registros[IP]], memoria, registros, tablaSegmento);
     }
@@ -484,8 +500,9 @@ uint8_t detectarVersion(char *nombre) {
     if (arch) {
         fseek(arch, 5, SEEK_SET);
         fread(&version, sizeof(uint8_t), 1, arch);
-        fclose(arch);
     }
+    
+    fclose(arch);
     return version;
 }
 

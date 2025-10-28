@@ -36,10 +36,11 @@ const char *mnemonicosMV2[32] = { //arreglo de string, estan en orden para que c
 
 void disassemblerMV2(uint8_t memoria[], infoSegmento tablaSegmentos[], uint32_t registros[]) {
     uint32_t i, j, dirFisica;
-    uint32_t baseConst= tablaSegmentos[KS].base;
-    uint32_t tamConst= tablaSegmentos[KS].tamanio;
-    uint32_t baseCode= tablaSegmentos[CS].base;
-    uint32_t tamCode= tablaSegmentos[CS].tamanio;
+    //imprimo el contenido de los registros KS y CS, indicando cual es cual
+    uint32_t baseConst= tablaSegmentos[registros[KS] >>16].base;
+    uint32_t tamConst= tablaSegmentos[registros[KS] >>16].tamanio;
+    uint32_t baseCode= tablaSegmentos[registros[CS] >>16].base;
+    uint32_t tamCode= tablaSegmentos[registros[CS] >>16].tamanio;
     uint32_t entry= registros[IP] & 0x0000FFFF;
 
     //cadenas
