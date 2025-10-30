@@ -1,4 +1,5 @@
 #include "maquina.h"
+
 void SYS(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
     
     uint16_t cantBytes = (registros[ECX] >> 16) & 0x0000FFFF;
@@ -6,6 +7,7 @@ void SYS(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
     uint8_t modo_lectura = registros[EAX],byteActual;
     int64_t valor;
     int i,b,j,caracter;
+    
 
     uint32_t llamado = get(registros[OP1],registros,memoria,tablaSegmentos);
     switch (llamado){
@@ -132,8 +134,9 @@ void SYS(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
             break; 
         }
         case 0xF:{
-            if(imagenVMI){ //--------------CONDICION DE VMI----------------------------------------------------------------
-                do{
+            
+            if(imagenVMI == 1){ //--------------CONDICION DE VMI----------------------------------------------------------------
+               do{
                 generar_imagen(registros,memoria,tablaSegmentos);
                 char caracter = getchar(); 
                 if(caracter == 'q')
@@ -142,8 +145,7 @@ void SYS(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
                     if(caracter == '\n' && registros[IP] != 0xFFFFFFFF)
                         leerInstrucciones(memoria[registros[IP]], memoria, registros, tablaSegmentos);
                 } while(caracter != 'q' || caracter != 'g');
-                //-----------------------------------------------
-                break;
+                break; 
             }
         }
     }

@@ -8,10 +8,11 @@
 #define MEM 16384
 #define ESCRITURA 1
 #define LECTURA 2
-#define ENT 6
+#define ENT 8 //--------------------------------
 #define REG 32
 
-int imagenVMI;
+extern int imagenVMI ;
+char *nombreArchivo2;
 
 
 typedef enum {

@@ -5,6 +5,8 @@
 #include <stdio.h>
 #include <stdint.h>
 
+
+
 int main(int argc, char *argv[]) {
     
 
@@ -37,7 +39,7 @@ int main(int argc, char *argv[]) {
         if (strstr(argv[i], ".vmx"))
             archivoVMX = argv[i];
         else 
-            if (strstr(argv[i], ".vmi"))
+            if (strstr(argv[i], ".vmi"))//-------------------le los .vmx y vmi
                 archivoVMI = argv[i];
             else 
                 if (strncmp(argv[i], "m=", 2) == 0)
@@ -58,16 +60,19 @@ int main(int argc, char *argv[]) {
     }
 
     //Cargar archivo y detectar version
-    nombreArchivo = archivoVMX ? archivoVMX : archivoVMI;
-    if (!nombreArchivo) {
+    //nombreArchivo = archivoVMX ? archivoVMX : archivoVMI; --------------------------------------------
+    nombreArchivo = archivoVMX;
+    nombreArchivo2 = archivoVMI;
+
+    if (!nombreArchivo && !nombreArchivo2) { //- me aseguro que uno de ellos este incluido,  no pueden faltar los dos ---------------------
         printf("Error: debe especificarse un archivo .vmx o .vmi\n");
         free(memoria);
         return 1;
     }
 
     tamParamSegment = 0;
-    registros[31] = 0xFFFFFFFF;
-    if (indiceParametros != -1) {
+    registros[31] = 0xFFFFFFFF;  // ps
+    if (indiceParametros != -1) {  // primer parametro
         argc_param = argc - indiceParametros;
         construirParamSegment(memoria, &argv[indiceParametros], argc_param, &tamParamSegment);
 
@@ -89,10 +94,11 @@ int main(int argc, char *argv[]) {
     }
 
     printf("Inicio de ejecucion del programa %s (version %d)\n", nombreArchivo, version);
-    ejecucion(registros, tablaSegmento, memoria, argc, argv);
+    ejecucion(registros, tablaSegmento, memoria, argc, argv); /// 
     printf("Fin de ejecucion del programa\n");
 
     if (mostrarDisassembler) {
+        printf("version :   %u",version);//-----------------------------------------------------------------------------
         if (version == 2)
             disassemblerMV2(memoria, tablaSegmento, registros);
         else
@@ -107,5 +113,8 @@ int main(int argc, char *argv[]) {
     }
 
     free(memoria);
+
+    
+
     return 0;
 }
