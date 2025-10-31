@@ -11,6 +11,7 @@ void inicioTablaSegmento(infoSegmento tabla[],uint16_t tamanioCod){
     tabla[1].tamanio = MEM - tamanioCod;
 }
 void inicioRegistro(uint32_t reg[]){
+    // los registros guardan su posición en la tabla de segmentos en el segundo byte más alto
     reg[CS] = 0x00000000;
     reg[DS] = 0x00010000;
     reg[KS] = 0xFFFFFFFF;
@@ -89,14 +90,15 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
                             if(i%2){
                                     //terminé de leer el tamaño de este segmento
                                 if(tamanio!=0){
+                                    printf("Segmento %d: base=%04x, tamanio=%04x\n", *num_segmentos, base, tamanio);
                                     tablaSegmento[*num_segmentos].base = base;
                                     base += tamanio;
                                     tablaSegmento[*num_segmentos].tamanio = tamanio;
-                                    registros[30-(i/2)] =  (*num_segmentos << 16);
+                                    registros[26+(i/2)] =  (*num_segmentos << 16);
                                     *num_segmentos += 1;
                                 }
                                 else{
-                                    registros[30-(i/2)] = 0xFFFFFFFF;
+                                    registros[26+(i/2)] = 0xFFFFFFFF;
                                 }
                                 tamanio_mem_principal += tamanio;
                                 if(tamanio_mem_principal > MEM){
@@ -106,14 +108,23 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
                                 tamanio = 0;
                             }
                         }
-                        // ANTES ESTABA LO DEL ENTRY POINT Y LA INICIALIZAION DEL IP
                         
                     }
+                    //muestro todos los registros de segmento un printf cada uno
+                    for(i=0;i<ENT-2;i++){
+                        printf("registros[%d]=%08x\n",26+i, registros[26+i]);
+                    }
+                    
                     if(fread(&byte_aux, 1, 1, arch) == 1){
                              entry_offset = (entry_offset << 8) | byte_aux;
+                             printf("entry offset: %04x\n", entry_offset);
                             if(fread(&byte_aux, 1, 1, arch)){
                                 entry_offset = (entry_offset << 8) | byte_aux;
-                                registros[IP] = (registros[CS] & 0xFFFF0000) | (entry_offset & 0xFFFF);
+                                printf("entry offset: %04x\n", entry_offset);
+
+                                printf("registro CS: %08x\n", registros[CS]);
+                                registros[IP] = tablaSegmento[registros[CS] >> 16].base + entry_offset;
+                                printf("registro IP: %08x\n", registros[IP]);
                                 registros[SP] = (registros[SS] & 0xFFFF0000) + tablaSegmento[registros[SS]>>16].tamanio; // DESPLAZAMIENTO >> 16 --------------------
                             }
                         }
@@ -121,13 +132,20 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
                     uint16_t tamanioCODE =  tablaSegmento[(registros[CS] >> 16) & 0xFFFF ].tamanio;
                     if(fread(memoria + tablaSegmento[(registros[CS] >> 16) & 0xFFFF].base,1,tamanioCODE,arch) != tamanioCODE)
                         printf("no se pudo leer el segmento de codigo");
-                    else {
-                        uint16_t tamanioCONST = tablaSegmento[(registros[KS]  >> 16) & 0xFFFF].tamanio;
-                        if(tamanioCONST != 0){ 
-                            if(fread(memoria + tablaSegmento[(registros[KS] >> 16) & 0xFFFF].base,1,tamanioCONST,arch) != tamanioCONST)
-                                printf("no se pudo leer el segmento de constantes");
-                        }
+                    else{
+                        uint16_t tamanioCONST = 0; // Inicializar a 0
+                        
+                        // --- INICIO DE LA CORRECCIÓN ---
+                        // Comprobar si KS es un segmento válido antes de usarlo
+                        if (registros[KS] != 0xFFFFFFFF) { 
+                            tamanioCONST = tablaSegmento[(registros[KS] >> 16) & 0xFFFF].tamanio;
+                        // --- FIN DE LA CORRECCIÓN ---
 
+                            if(tamanioCONST != 0){ 
+                                if(fread(memoria + tablaSegmento[(registros[KS] >> 16) & 0xFFFF].base,1,tamanioCONST,arch) != tamanioCONST)
+                                    printf("no se pudo leer el segmento de constantes");
+                            }
+                        } // <-- Cierra el 'if' de la corrección
                     }
                     printf("letura del CS y del KS (si este ultimo fue especificado)\n");
                     *resultado = 1;
@@ -230,7 +248,7 @@ void debug_registros(uint32_t registros[]) {
 void operacion_memoria(uint32_t registros[], uint8_t memoria[], uint32_t direccion, int32_t valor, uint8_t tipo_operacion, uint8_t cantBytes, infoSegmento tablasegmento[], uint32_t segmento){
     //acá se ejecutan las escrituras o lecturas del DS
     int i;
-    registros[LAR] = segmento| direccion;
+    registros[LAR] = segmento | direccion;
     registros[MBR] = valor;
     calcDirFisica(tablasegmento,registros,cantBytes);
     if(registros[IP] == 0xFFFFFFFF) {
@@ -263,7 +281,7 @@ void calcDirFisica(infoSegmento tablaSegmento[ENT],uint32_t registros[],int cant
     if(numSegmento < ENT && tablaSegmento[numSegmento].base <= dirFisica && limSegmento >= limAcceso)
         registros[MAR] = dirFisica;
     else{
-        printf("numSegmento: %d, ENT: %d, tablaSegmento[numSegmento].base: %08x, dirFisica: %08X, limsegmento: %08X, limacceso: %08X ",numSegmento,ENT,tablaSegmento[numSegmento].base,dirFisica,limSegmento,limAcceso);//-----
+        printf("numSegmento: %d, ENT: %d, tablaSegmento[numSegmento].base: %08x, dirFisica: %08X, limsegmento: %08X, limacceso: %08X \n",numSegmento,ENT,tablaSegmento[numSegmento].base,dirFisica,limSegmento,limAcceso);//-----
         printf("SEGMENTATION  FAULT\n"); // detecta uno de los 3 errores que se deben tener en cuenta segun requisitos
         registros[IP] = 0xFFFFFFFF;
         return;
@@ -326,9 +344,14 @@ void leerInstrucciones(uint8_t instruccion, uint8_t memoria[], uint32_t registro
 
     
 
-    if ((version == 1 && ((registros[OPC] > 0x08 && registros[OPC] < 0x0F) || (registros[OPC] > 0x0F && registros[OPC] < 0x10) || (registros[OPC] > 0x1F))) || 
+    if ((version == 1 && ((registros[OPC] > 0x08 && registros[OPC] < 0x0F) || (registros[OPC] > 0x1F))) || 
                 (version == 2 && (registros[OPC] == 0x09 ||  registros[OPC] == 0x0A || registros[OPC] > 0x1F))){ //--------------------------
             printf("ERROR: operacion invalida. Operacion: %08X. version: %d\n",registros[OPC],version);//---------------------
+            
+            printf("OPC: %08X\n",registros[OPC]);
+            printf("OP1: %08X\n",registros[OP1]);
+            printf("OP2: %08X\n",registros[OP2]);
+            printf("IP: %08X\n",registros[IP]);
             registros[IP] = 0xFFFFFFFF;
     }
     else
@@ -339,25 +362,36 @@ void leerInstrucciones(uint8_t instruccion, uint8_t memoria[], uint32_t registro
             cantByteB = 0;
             registros[OP2] = 0;
         }
-        if ((registros[OPC]!=0x0F && registros[OP1]==0)||(registros[OPC]<=0x1F && registros[OPC]>=0x10 && registros[OP2]==0)){ //reviso si es una operacion invalida
-            printf("ERROR: operacion invalida\n");
+        if ((((version == 1 && registros[OPC]!=0x0F )|| (version == 2 && registros[OPC] != 0x0E && registros[OPC] != 0x0F)) && registros[OP1]==0)||(registros[OPC]<=0x1F && registros[OPC]>=0x10 && registros[OP2]==0)){ //reviso si es una operacion invalida
+            printf("ERROR: operacion invalida. Operacion: %08X. version: %d\n",registros[OPC],version);
+            
+            printf("OPC: %08X\n",registros[OPC]);
+            printf("OP1: %08X\n",registros[OP1]);
+            printf("OP2: %08X\n",registros[OP2]);
+            printf("IP: %08X\n",registros[IP]);
             registros[IP] = 0xFFFFFFFF;
         }
         else {
             if(registros[OPC] != 0x0F){
+                
                 registros[IP] = registros[IP] + 1;
 
-                if(version == 1 && (registros[IP] + cantByteB > tablaSegmento[0].base + tablaSegmento[0].tamanio)) {//--------------
+                if(registros[IP] + cantByteB > tablaSegmento[registros[CS] >> 16].base + tablaSegmento[registros[CS] >> 16].tamanio) {//--------------
                     printf("SEGMENTATION FAULT\n");
                     registros[IP] = 0xFFFFFFFF;
                     return;
                 }
+                if(registros[IP] + cantByteB > tablaSegmento[registros[CS] >> 16].base + tablaSegmento[registros[CS] >> 16].tamanio) {
+                    printf("ERROR: Lectura de operando 2 fuera de límites\n");
+                    registros[IP] = 0xFFFFFFFF;
+                    return;
+                } 
                 operandos(&lectura,registros[OP2],registros,memoria);
                 registros[OP2]=registros[OP2] << 24;
                 registros[OP2]=registros[OP2] | lectura;
                 registros[IP] = registros[IP] + cantByteB;
 
-                if(registros[IP] + cantByteA > tablaSegmento[0].base + tablaSegmento[0].tamanio) {
+                if(registros[IP] + cantByteA > tablaSegmento[registros[CS] >> 16].base + tablaSegmento[registros[CS] >> 16].tamanio) {
                     printf("ERROR: Lectura de operando 1 fuera de límites\n");
                     registros[IP] = 0xFFFFFFFF;
                     return;
@@ -366,6 +400,9 @@ void leerInstrucciones(uint8_t instruccion, uint8_t memoria[], uint32_t registro
                 registros[OP1]=registros[OP1] << 24;
                 registros[OP1]=registros[OP1] | lectura;
                 registros[IP] = registros[IP] + cantByteA;
+                if(registros[OPC] == 0x0D){
+                    
+                }
             }
             //Aca ya tengo OPC, OP1 y OP2 para ejecutar
             //printf("DEBUG: Listo para ejecutar OPC=%X \n", registros[OPC]);
@@ -376,7 +413,7 @@ void leerInstrucciones(uint8_t instruccion, uint8_t memoria[], uint32_t registro
 uint32_t get_segmento(uint8_t cod_reg, uint32_t registros[], infoSegmento tablaSegmentos[]){
     
     if(cod_reg < CS && cod_reg != BP && cod_reg != SP) cod_reg = DS; //El codigo de registro es uno de los de uso general
-    
+    if(cod_reg == BP || cod_reg == SP) cod_reg = SS;
     return registros[cod_reg];
 }
 int32_t get(uint32_t operando,uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
@@ -412,13 +449,13 @@ void set_segmento_registro(uint32_t registros[],uint32_t operando1, int32_t oper
             registros[reg] = operando2;
             break;
         case 1://Por ejemplo AL
-            registros[reg] = (reg & 0xFFFFFF00) & operando2;
+            registros[reg] = (reg & 0xFFFFFF00) | operando2;
             break;
         case 2://Por ejemplo AH
-            registros[reg] = (reg & 0xFFFF00FF) & operando2;
+            registros[reg] = (reg & 0xFFFF00FF) | (operando2<<16);
             break;
-        case 3://Por ejemplo AAX
-            registros[reg] = (reg & 0xFFFF0000) & operando2;
+        case 3://Por ejemplo AX
+            registros[reg] = (reg & 0xFFFF0000) | operando2;
             break;
     }
 }
@@ -432,61 +469,66 @@ void set(uint32_t registros[], uint8_t memoria[], uint32_t operando1, int32_t op
     if (tipo_operando1 == 1)
         set_segmento_registro(registros,operando1, operando2, reg);
     else{
-        direccion = registros[cod_reg] +(int16_t) operando1 & 0x0000FFFF;
+        direccion = registros[cod_reg] +(int16_t) (operando1 & 0x0000FFFF);
 
         operacion_memoria(registros, memoria, direccion, operando2, ESCRITURA, 4,tablaSegmentos, get_segmento(cod_reg, registros, tablaSegmentos));
     }
 }
 void inicializar_stack(uint32_t registros[], uint8_t memoria[], infoSegmento tablaSegmentos[], int argc, char* argv[]){
+    /*
+    Hay que inicializar el stack guardando en la posición más "al fondo" (con el IP más alto) el puntero al arreglo de argumentos
+    Después se pone arriba (push) la cantidad de argumentos
+    Y arriba de eso el RET que haría finalizar el programa (pues igualaría el SP a -1)
+    */
     const int cantBytes = 4;
     uint32_t puntero_args = (argc == 0) ? 0xFFFFFFFF : (uint32_t)*argv;
     uint32_t cant_args = argc;
-    /*
-    // CODIGO MODIFICADO PARA QUE ADEMAS SE VEA MODIFICADA LA MEMORIA -----------------------------------------------------------------
-    // Empujar puntero_args (argv)
-    registros[OP1] = puntero_args;
-    PUSH(registros, memoria, tablaSegmentos);
-
-    // Empujar argc
-    registros[OP1] = cant_args;
-    PUSH(registros, memoria, tablaSegmentos);
-
-    // Empujar valor de retorno o padding
-    registros[OP1] = 0xFFFFFFFF;
-    PUSH(registros, memoria, tablaSegmentos);
-
-    printf("Stack inicializado con argc=%u, argv=%p, SP=0x%X\n",
-           cant_args, (void*)puntero_args, registros[SP]);
-        */
-    
     int i;
-    registros[SP] -= 4;
+    //establezco byte a byte las primeras posiciones porque es más fácil que andar creando un falso operando a mano para llamar a PUSH
     // en la posicion más abajo del stack (el fondo de la pila) pongo el puntero al inicio del arreglo de argumentos
+    registros[SP] -= 4;
+    registros[LAR] = registros[SP];
+    calcDirFisica(tablaSegmentos, registros, cantBytes);
     for (i = 0; i < cantBytes; i++) {
-        memoria[registros[SP] + i] = (puntero_args >> (8 * (cantBytes - 1 - i))) & 0x000000FF;
+        memoria[(registros[MAR] & 0x0000FFFF) + i] = (puntero_args >> (8 * (cantBytes - 1 - i))) & 0x000000FF;
     }
+    printf("Después de escribir valor %d: SP = 0x%X\n", puntero_args, registros[SP]);
     printf("listo puntero args\n");//------------------------------------------
+
     // en la segunda posicion del stack pongo la cantidad de argumentos
     registros[SP] -= 4;
+    registros[LAR] = registros[SP];
+    calcDirFisica(tablaSegmentos, registros, cantBytes);
     for (i = 0; i < cantBytes; i++) {
-        memoria[registros[SP] + i] = (cant_args >> (8 * (cantBytes - 1 - i))) & 0x000000FF;
+        memoria[(registros[MAR] & 0x0000FFFF) + i] = (cant_args >> (8 * (cantBytes - 1 - i))) & 0x000000FF;
     }
+    printf("Después de escribir valor %d: SP = 0x%X\n", cant_args, registros[SP]);
     printf("listo puntero cant args\n");//------------------------------------------
     registros[SP] -= 4;
+    registros[LAR] = registros[SP];
+    calcDirFisica(tablaSegmentos, registros, cantBytes);
     for (i = 0; i < cantBytes; i++) {
-        memoria[registros[SP] + i] = 0xFF;
+        memoria[(registros[MAR] & 0x0000FFFF) + i] = 0xFF;
     }
+    printf("Después de escribir valor %d: SP = 0x%X\n", -1, registros[SP]);
+    printf("Stack inicializado con argc=%u, argv=%p, SP=0x%X\n",
+           cant_args, (void*)puntero_args, registros[SP]);
+    printf("Stack inicializado: SP final = 0x%X\n", registros[SP]);
 }
 void ejecucion(uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint8_t memoria[], int argc, char* argv[]){
     //IP ya viene inicializado desde la lectura del encabezado
-    
+    int i = 0;
     uint16_t base = tablaSegmento[registros[CS] >> 16].base;
     uint16_t tamanio = tablaSegmento[registros[CS] >> 16].tamanio;
     if(registros[SS] != 0xFFFFFFFF) inicializar_stack(registros,memoria,tablaSegmento,argc,argv);
+    printf("leo primera instruccion\n");
+    i++;
     leerInstrucciones(memoria[registros[IP]], memoria, registros, tablaSegmento);
-    //registros[IP] = -1;
     while (registros[IP] != 0xFFFFFFFF && registros[IP] < base+tamanio ){
-       leerInstrucciones(memoria[registros[IP]], memoria, registros, tablaSegmento);
+        i++;
+
+        printf("leo instruccion %d\n", i);
+        leerInstrucciones(memoria[registros[IP]], memoria, registros, tablaSegmento);
     }
 
 }

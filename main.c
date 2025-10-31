@@ -98,7 +98,7 @@ int main(int argc, char *argv[]) {
     printf("Fin de ejecucion del programa\n");
 
     if (mostrarDisassembler) {
-        printf("version :   %u",version);//-----------------------------------------------------------------------------
+        printf("version :   %u\n",version);//-----------------------------------------------------------------------------
         if (version == 2)
             disassemblerMV2(memoria, tablaSegmento, registros);
         else

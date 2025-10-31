@@ -156,32 +156,32 @@ void RND(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
     set(registros,memoria,registros[OP1], rand() % (get(registros[OP2], registros, memoria,tablaSegmentos) + 1),tablaSegmentos);
 }
 void JMP(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
-    registros[IP] = registros[OP1] & 0x0000FFFF;
+    registros[IP] = get(registros[OP1], registros, memoria, tablaSegmentos) & 0x0000FFFF;;
 }
 
 void JZ(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
     if((registros[CC] & (0x01<<30)) == (1<<30))
-        registros[IP] = registros[OP1] & 0x0000FFFF;
+        registros[IP] = get(registros[OP1], registros, memoria, tablaSegmentos) & 0x0000FFFF;
 }
 void JP(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
     if(registros[CC] == 0)
-        registros[IP] = registros[OP1] & 0x0000FFFF;
+        registros[IP] = get(registros[OP1], registros, memoria, tablaSegmentos) & 0x0000FFFF;
 }
 void JN(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
     if((registros[CC] & (0x02<<30)) == (2<<30))
-        registros[IP] = registros[OP1] & 0x0000FFFF;
+        registros[IP] = get(registros[OP1], registros, memoria, tablaSegmentos) & 0x0000FFFF;
 }
 void JNZ(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
     if((registros[CC] & (0x01<<30)) == 0)
-        registros[IP] = registros[OP1] & 0x0000FFFF;
+        registros[IP] = get(registros[OP1], registros, memoria, tablaSegmentos) & 0x0000FFFF;
 }
 void JNP(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
-    if((registros[CC] & (0x03<<30)) == (2<<30) || (registros[CC] & 0x03) == (1<<30))
-        registros[IP] = registros[OP1] & 0x0000FFFF;
+    if((registros[CC] & (0x02<<30)) == (2<<30) || (registros[CC] & 0x01<<30) == (1<<30))
+        registros[IP] = get(registros[OP1], registros, memoria, tablaSegmentos) & 0x0000FFFF;
 }
 void JNN(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
     if((registros[CC] & (0x02<<30)) < (2<<30))
-        registros[IP] = registros[OP1] & 0x0000FFFF;
+        registros[IP] = get(registros[OP1], registros, memoria, tablaSegmentos) & 0x0000FFFF;
 }
 
 void ADD(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
@@ -302,9 +302,20 @@ void PUSH(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[])
     }
 }
 void POP(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
+    /*
+    1- extraer 4 bytes del tope de pila
+    2- si al realizar esta accion no se pudo completar porque no habia bytes suficientes o la pila estaba vacia, stack underflow
+    3- convertir 4 bytes extraidos en un valor donde el byte mas significativo es el tope de la pila y el menos significativo es el byte mas abajo en la pila de esos 4
+    4- asignar el valor extraido al primer operando, si el operando es menos a 4 bytes se truncan los mas significativos
+    5- incrementar SP en 4
+    */
     int32_t operando_memoria = 0x0  |(0x7 << 16) | (0x3 << 24); //creo un falso operando que sería el Stack Pointer
     int32_t valor;
-    if(registros[SP] == registros[SS]){
+    uint32_t seg_index = registros[SS] >> 16;
+    uint32_t stack_bottom = (registros[SS] & 0xFFFF0000) + tablaSegmentos[seg_index].tamanio;
+    printf("POP\n");
+    printf("IP: %08X\n",registros[IP]);
+    if(registros[SP] == stack_bottom || registros[SP] + 4 > stack_bottom){
         printf("ERROR: Stack Underflow\n");
         STOP(registros,memoria,tablaSegmentos);
     }
@@ -313,6 +324,8 @@ void POP(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
         registros[SP] += 4;
         set(registros,memoria,registros[OP1],valor,tablaSegmentos);
     }
+    
+    printf("IP: %08X\n",registros[IP]);
 }
 
 void CALL(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
@@ -320,18 +333,30 @@ void CALL(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[])
      * creamos un falso operando registro que almacenaría el valor del IP y lo guardamos en el registro OP1 para que lo use la instruccion PUSH
      * le devolvemos su valor anterior al registro OP1 y hacemos JMP
     */
-   int32_t operando_registro = 0x0 | (0x1 << 24) | 0x3;
-   uint32_t aux = registros[OP1];
-
-   registros[OP1] = operando_registro;
-   PUSH(registros,memoria,tablaSegmentos);
-   registros[OP1] = aux;
-   JMP(registros,memoria,tablaSegmentos);
-}
+    uint32_t aux = registros[OP1];
+    uint32_t operando_registro = 0x0 | (0x1 << 24) | 0x3;
+    registros[OP1] = operando_registro;
+    PUSH(registros,memoria,tablaSegmentos);
+    registros[OP1] = aux;
+    JMP(registros,memoria,tablaSegmentos);
+}/*
 void RET(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
-   int32_t operando_registro = 0x0 | (0x1 << 24) | 0x3;
+   int32_t operando_registro = 0x0 | (0x1 << 24) | 0x7;
+   printf("RET\n");
+   printf("IP: %08X\n",registros[IP]);
    registros[OP1] = operando_registro;
-   POP(registros,memoria,tablaSegmentos);
+   //no puedo usar POP
+   //leer los siguientes 4 bytes y ponerlos en el IP
+   operacion_memoria(registros,memoria,registros[SP],0,LECTURA,4,tablaSegmentos,registros[SS]);
+   registros[IP] = registros[MBR];
+   registros[SP] += 4;
+   printf("IP: %08X\n",registros[IP]);
+}*/
+void RET(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
+   int32_t operando_registro = 0x0 | (0x1 << 24) | 0x3;  // ✓ registro IP
+   registros[OP1] = operando_registro;
+   POP(registros, memoria, tablaSegmentos);
+   // POP ya pone el valor en IP (vía set) y actualiza SP
 }
 void NO_ACCESIBLE(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
     printf("INSTRUCCION INVALIDA: codigo de operacion de la instruccion a ejecutar no existe\n");  // detecta uno de los 3 errores que se deben tener en cuenta segun requisitos
