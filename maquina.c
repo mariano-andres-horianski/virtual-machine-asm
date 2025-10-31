@@ -90,7 +90,6 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
                             if(i%2){
                                     //terminé de leer el tamaño de este segmento
                                 if(tamanio!=0){
-                                    printf("Segmento %d: base=%04x, tamanio=%04x\n", *num_segmentos, base, tamanio);
                                     tablaSegmento[*num_segmentos].base = base;
                                     base += tamanio;
                                     tablaSegmento[*num_segmentos].tamanio = tamanio;
@@ -110,21 +109,13 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
                         }
                         
                     }
-                    //muestro todos los registros de segmento un printf cada uno
-                    for(i=0;i<ENT-2;i++){
-                        printf("registros[%d]=%08x\n",26+i, registros[26+i]);
-                    }
-                    
+
                     if(fread(&byte_aux, 1, 1, arch) == 1){
                              entry_offset = (entry_offset << 8) | byte_aux;
-                             printf("entry offset: %04x\n", entry_offset);
                             if(fread(&byte_aux, 1, 1, arch)){
                                 entry_offset = (entry_offset << 8) | byte_aux;
-                                printf("entry offset: %04x\n", entry_offset);
 
-                                printf("registro CS: %08x\n", registros[CS]);
                                 registros[IP] = tablaSegmento[registros[CS] >> 16].base + entry_offset;
-                                printf("registro IP: %08x\n", registros[IP]);
                                 registros[SP] = (registros[SS] & 0xFFFF0000) + tablaSegmento[registros[SS]>>16].tamanio; // DESPLAZAMIENTO >> 16 --------------------
                             }
                         }
@@ -492,9 +483,6 @@ void inicializar_stack(uint32_t registros[], uint8_t memoria[], infoSegmento tab
     for (i = 0; i < cantBytes; i++) {
         memoria[(registros[MAR] & 0x0000FFFF) + i] = (puntero_args >> (8 * (cantBytes - 1 - i))) & 0x000000FF;
     }
-    printf("Después de escribir valor %d: SP = 0x%X\n", puntero_args, registros[SP]);
-    printf("listo puntero args\n");//------------------------------------------
-
     // en la segunda posicion del stack pongo la cantidad de argumentos
     registros[SP] -= 4;
     registros[LAR] = registros[SP];
@@ -502,32 +490,20 @@ void inicializar_stack(uint32_t registros[], uint8_t memoria[], infoSegmento tab
     for (i = 0; i < cantBytes; i++) {
         memoria[(registros[MAR] & 0x0000FFFF) + i] = (cant_args >> (8 * (cantBytes - 1 - i))) & 0x000000FF;
     }
-    printf("Después de escribir valor %d: SP = 0x%X\n", cant_args, registros[SP]);
-    printf("listo puntero cant args\n");//------------------------------------------
     registros[SP] -= 4;
     registros[LAR] = registros[SP];
     calcDirFisica(tablaSegmentos, registros, cantBytes);
     for (i = 0; i < cantBytes; i++) {
         memoria[(registros[MAR] & 0x0000FFFF) + i] = 0xFF;
     }
-    printf("Después de escribir valor %d: SP = 0x%X\n", -1, registros[SP]);
-    printf("Stack inicializado con argc=%u, argv=%p, SP=0x%X\n",
-           cant_args, (void*)puntero_args, registros[SP]);
-    printf("Stack inicializado: SP final = 0x%X\n", registros[SP]);
 }
 void ejecucion(uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint8_t memoria[], int argc, char* argv[]){
     //IP ya viene inicializado desde la lectura del encabezado
-    int i = 0;
     uint16_t base = tablaSegmento[registros[CS] >> 16].base;
     uint16_t tamanio = tablaSegmento[registros[CS] >> 16].tamanio;
     if(registros[SS] != 0xFFFFFFFF) inicializar_stack(registros,memoria,tablaSegmento,argc,argv);
-    printf("leo primera instruccion\n");
-    i++;
     leerInstrucciones(memoria[registros[IP]], memoria, registros, tablaSegmento);
     while (registros[IP] != 0xFFFFFFFF && registros[IP] < base+tamanio ){
-        i++;
-
-        printf("leo instruccion %d\n", i);
         leerInstrucciones(memoria[registros[IP]], memoria, registros, tablaSegmento);
     }
 

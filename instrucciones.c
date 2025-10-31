@@ -313,8 +313,6 @@ void POP(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
     int32_t valor;
     uint32_t seg_index = registros[SS] >> 16;
     uint32_t stack_bottom = (registros[SS] & 0xFFFF0000) + tablaSegmentos[seg_index].tamanio;
-    printf("POP\n");
-    printf("IP: %08X\n",registros[IP]);
     if(registros[SP] == stack_bottom || registros[SP] + 4 > stack_bottom){
         printf("ERROR: Stack Underflow\n");
         STOP(registros,memoria,tablaSegmentos);
@@ -324,8 +322,6 @@ void POP(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
         registros[SP] += 4;
         set(registros,memoria,registros[OP1],valor,tablaSegmentos);
     }
-    
-    printf("IP: %08X\n",registros[IP]);
 }
 
 void CALL(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
