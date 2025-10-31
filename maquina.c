@@ -437,7 +437,7 @@ int32_t get(uint32_t operando,uint32_t registros[], uint8_t memoria[],infoSegmen
     else {
         //el operando es direccion de memoria
         direccion += 4-(4-sub_segmento);
-        operacion_memoria(registros, memoria, direccion, 0, LECTURA, 4-((operando>>30) & 0x00000003), tablaSegmentos, get_segmento(cod_reg, registros, tablaSegmentos)); //4 bytes porque es el tamaño de cada celda
+        operacion_memoria(registros, memoria, direccion, 0, LECTURA, 4-sub_segmento, tablaSegmentos, get_segmento(cod_reg, registros, tablaSegmentos)); //4 bytes porque es el tamaño de cada celda
         return (int32_t)registros[MBR];
     }
 }
