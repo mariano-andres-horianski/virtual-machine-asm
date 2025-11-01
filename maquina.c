@@ -414,10 +414,16 @@ void leerInstrucciones(uint8_t memoria[], uint32_t registros[REG], infoSegmento 
     }
 }
 uint32_t get_segmento(uint8_t cod_reg, uint32_t registros[], infoSegmento tablaSegmentos[]){
-    
-    if(cod_reg < CS && cod_reg != BP && cod_reg != SP) cod_reg = DS; //El codigo de registro es uno de los de uso general
+
+    if(cod_reg < CS && cod_reg != BP && cod_reg != SP){ //El codigo de registro es uno de los de uso general
+        if((registros[cod_reg] & 0xFFFF0000) == 0) cod_reg = DS;
+        else return registros[cod_reg] & 0xFFFF0000;
+    }
+
     if(cod_reg == BP || cod_reg == SP) cod_reg = SS;
+
     return registros[cod_reg];
+
 }
 int32_t get(uint32_t operando,uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
     // considerar caso de la funcion SYS donde la cantidad de bytes es impredecible
@@ -452,13 +458,13 @@ void set_segmento_registro(uint32_t registros[],uint32_t operando1, int32_t oper
             registros[reg] = operando2;
             break;
         case 1://Por ejemplo AL
-            registros[reg] = (reg & 0xFFFFFF00) | operando2;
+            registros[reg] = (registros[reg] & 0xFFFFFF00) | operando2;
             break;
         case 2://Por ejemplo AH
-            registros[reg] = (reg & 0xFFFF00FF) | (operando2<<16);
+            registros[reg] = (registros[reg] & 0xFFFF00FF) | (operando2<<8);
             break;
         case 3://Por ejemplo AX
-            registros[reg] = (reg & 0xFFFF0000) | operando2;
+            registros[reg] = (registros[reg] & 0xFFFF0000) | operando2;
             break;
     }
 }
@@ -472,7 +478,7 @@ void set(uint32_t registros[], uint8_t memoria[], uint32_t operando1, int32_t op
     if (tipo_operando1 == 1)
         set_segmento_registro(registros,operando1, operando2, reg);
     else{
-        direccion = registros[cod_reg] +(int16_t) (operando1 & 0x0000FFFF);
+        direccion = registros[cod_reg] + (int16_t) (operando1 & 0x0000FFFF);
 
         operacion_memoria(registros, memoria, direccion, operando2, ESCRITURA, 4,tablaSegmentos, get_segmento(cod_reg, registros, tablaSegmentos));
     }

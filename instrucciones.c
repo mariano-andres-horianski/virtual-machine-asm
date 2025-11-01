@@ -61,8 +61,8 @@ void SYS(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
             printf("\n");
             }
             printf("\n");
-        }
         break;
+        }
         case 0x2: { //escribe en pantalla 
             for(i = 0; i<cantCeldas; i++){
                 valor = 0;
@@ -120,6 +120,7 @@ void SYS(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
                 }
             }
             operacion_memoria(registros,memoria,registros[EDX]+i,'\0', ESCRITURA, 1, tablaSegmentos, registros[segmento]);
+            break;
         }
         case 0x4: { //SRTING WRITE osea muestra un string
             i = 0;
@@ -131,7 +132,7 @@ void SYS(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
                 operacion_memoria(registros,memoria,registros[EDX]+i, 0, LECTURA, 1, tablaSegmentos, registros[segmento]);
                 caracter = registros[MBR] & 0xFF;
             } 
-        break;
+            break;
         }
         case 0x7: {
             system("cls");
@@ -152,8 +153,8 @@ void SYS(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
                     if(caracter == '\n' && registros[IP] != 0xFFFFFFFF && registros[CS] + tablaSegmentos[registros[CS]].tamanio > registros[IP])
                         leerInstrucciones(memoria, registros, tablaSegmentos);
                 } while(caracter != 'q' && caracter != 'g' && registros[IP] != 0xFFFFFFFF && registros[CS] + tablaSegmentos[registros[CS]].tamanio > registros[IP]);
-                break; 
             }
+            break; 
         }
     }
 }
