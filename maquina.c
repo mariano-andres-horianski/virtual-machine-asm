@@ -43,7 +43,8 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
     *resultado = 0;
     int i,j;
     arch = fopen(nombre, "rb");
-    
+    if(nombreArchivo2 != NULL)//-VARIABLE PARA VERIFICAR LA EXISTENCIA DE VMI---------------------------------
+        imagenVMI = 1;
     if(arch != NULL){
         printf("Archivo abierto correctamente\n");
         
@@ -115,7 +116,7 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
                             if(fread(&byte_aux, 1, 1, arch)){
                                 entry_offset = (entry_offset << 8) | byte_aux;
 
-                                registros[IP] = tablaSegmento[registros[CS] >> 16].base + entry_offset;
+                                registros[IP] = registros[CS] + entry_offset;
                                 registros[SP] = (registros[SS] & 0xFFFF0000) + tablaSegmento[registros[SS]>>16].tamanio; // DESPLAZAMIENTO >> 16 --------------------
                             }
                         }
@@ -194,8 +195,6 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
                                     }
                                 }
                             }
-                            if(nombreArchivo2 != NULL)//-VARIABLE PARA VERIFICAR LA EXISTENCIA DE VMI---------------------------------
-                                imagenVMI = 1;
                             *resultado = 1;
                         }
                                 
@@ -221,7 +220,15 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
     else{
         printf("Encabezado leido correctamente\n");
     }
-    
+    //imprimir los registros de segmento
+    printf("registros[CS]: %08x\n", registros[CS]);
+    printf("registros[KS]: %08x\n", registros[DS]);
+    printf("registros[ES]: %08x\n", registros[ES]);
+    printf("registros[SS]: %08x\n", registros[SS]);
+    printf("registros[KS]: %08x\n", registros[KS]);
+    printf("registros[PS]: %08x\n", registros[PS]);
+
+
     fclose(arch);
 }
 void debug_memoria(uint8_t memoria[], uint32_t direccion, int cantBytes) {
@@ -321,9 +328,9 @@ void operandos(uint32_t *lectura,uint32_t tipo,uint32_t registros[],uint8_t memo
     }
 }
 
-void leerInstrucciones(uint8_t instruccion, uint8_t memoria[], uint32_t registros[REG], infoSegmento tablaSegmento[]){
+void leerInstrucciones(uint8_t memoria[], uint32_t registros[REG], infoSegmento tablaSegmento[]){
     //usar los OP para calcular los bytes que necesitamos leer y poner en lectura
-
+    uint8_t instruccion = memoria[tablaSegmento[registros[CS] >> 16].base + (registros[IP] & 0xFFFF)];
     uint32_t lectura;
     uint8_t cantByteA,cantByteB;
     //printf("DEBUG: LeerInstrucciones: Instruccion byte = %02X\n", instruccion);
@@ -433,7 +440,7 @@ int32_t get(uint32_t operando,uint32_t registros[], uint8_t memoria[],infoSegmen
     }
 }
 void set_segmento_registro(uint32_t registros[],uint32_t operando1, int32_t operando2,uint8_t reg){
-    uint8_t seg_reg = operando1 >> 6 & 0x03;
+    uint8_t seg_reg = (operando1 >> 6) & 0x03;
 
     switch (seg_reg){
         case 0:
@@ -502,9 +509,9 @@ void ejecucion(uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint8_t m
     uint16_t base = tablaSegmento[registros[CS] >> 16].base;
     uint16_t tamanio = tablaSegmento[registros[CS] >> 16].tamanio;
     if(registros[SS] != 0xFFFFFFFF) inicializar_stack(registros,memoria,tablaSegmento,argc,argv);
-    leerInstrucciones(memoria[registros[IP]], memoria, registros, tablaSegmento);
+    leerInstrucciones(memoria, registros, tablaSegmento);
     while (registros[IP] != 0xFFFFFFFF && registros[IP] < base+tamanio ){
-        leerInstrucciones(memoria[registros[IP]], memoria, registros, tablaSegmento);
+        leerInstrucciones(memoria, registros, tablaSegmento);
     }
 
 }
@@ -524,7 +531,7 @@ void generar_imagen(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSe
     int i,tamTabla = 8;
     uint32_t registro,segmento;
 
-    archivoVMI = fopen("Estado_Actual","wb");//------------------MODIFICAR NOMBRE COMO PARAMETRO--------------------------
+    archivoVMI = fopen(nombreArchivo2,"wb");//------------------MODIFICAR NOMBRE COMO PARAMETRO--------------------------
     if(archivoVMI != NULL){
         fwrite("VMI25",1,5,archivoVMI);
         uint8_t versionVMI = 1;
