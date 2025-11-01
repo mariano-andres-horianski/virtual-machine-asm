@@ -42,6 +42,7 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
     uint8_t byte_count,byte_aux;
     *resultado = 0;
     int i,j;
+    if(nombre == NULL) nombre = nombreArchivo2;
     arch = fopen(nombre, "rb");
     if(nombreArchivo2 != NULL)//-VARIABLE PARA VERIFICAR LA EXISTENCIA DE VMI---------------------------------
         imagenVMI = 1;
@@ -55,8 +56,7 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
         
         if(fread(ident, sizeof(char), 5, arch) == 5){
             ident[5]='\0';
-            if(strcmp(ident,"VMX25") == 0)
-            
+            if(strcmp(ident,"VMX25") == 0){
                 if(fread(&version, sizeof(char), 1, arch) == 1){
                     if(version == 1){
                         if(fread(&byte_aux, 1, 1, arch) == 1){
@@ -81,6 +81,7 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
                         inicioRegistro(registros);
                         *resultado = 1;
                     }
+                }
                 if(version == 2){
                     base = tamano_param_segment;
                     tamanio_mem_principal = tamano_param_segment;
@@ -157,12 +158,13 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
                                 //los registros vienen dados en el orden del vector de registros (el primero es el registro 0, el ultimo el registro 31)
                                 //el primer byte de la celda es el primer (mas a la izquierda) byte del registro, el segundo es el segundo byte del registro y asi
                                 for(i = 0; i < 32; i++){
+                                    //printf("registro: %d\n", i);
                                     for(j = 0; j < 4; j++){
                                         if(fread(&byte_aux, 1, 1, arch) == 1){
-                                            registros[i] = (registros[i] << 8) | byte_aux;
+                                            //printf("%02X\n", byte_aux);
+                                            registros[i] = (registros[i] << 8) + byte_aux;
                                         }
                                     }
-                                    if (registros[i] != 0xFFFFFFFF) registros[i] = registros[i] | (i << 16);//si guarda el dato normalmente (en el byte más bajo) lo muevo al más alto para usos posteriores
                                 }
                                 //leer la tabla de descriptores de segmentos
                                 //son 8 celdas de 4 byts
@@ -207,7 +209,10 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
                     }
                 }
             }
-    }
+        }
+        else{
+            printf("No se pudo leer el identificador\n");
+        }
     }
     
     else {
@@ -528,7 +533,7 @@ void actualizarCC(uint32_t registros[],int32_t resultado){
 void generar_imagen(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
     FILE *archivoVMI;
     uint16_t tamMemoria = MEM; /// --------------------------------MODIFICAR CON VERSION 2 (VARIABLE)------------------------
-    int i,tamTabla = 8;
+    int i,j,tamTabla = 8;
     uint32_t registro,segmento;
 
     archivoVMI = fopen(nombreArchivo2,"wb");//------------------MODIFICAR NOMBRE COMO PARAMETRO--------------------------
@@ -548,8 +553,8 @@ void generar_imagen(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSe
             fwrite(&segmento,4,1,archivoVMI);
         }
         fwrite(memoria,1,tamMemoria,archivoVMI);
-        fclose(archivoVMI);
     }
+    fclose(archivoVMI);
 }
 
 uint8_t detectarVersion(char *nombre) {

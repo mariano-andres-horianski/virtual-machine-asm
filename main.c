@@ -63,9 +63,6 @@ int main(int argc, char *argv[]) {
     //nombreArchivo = archivoVMX ? archivoVMX : archivoVMI; --------------------------------------------
     nombreArchivo = archivoVMX;
     nombreArchivo2 = archivoVMI;
-    if(nombreArchivo2 != NULL){
-        generar_imagen(registros,memoria,tablaSegmento);
-    }
     if (!nombreArchivo && !nombreArchivo2) { //- me aseguro que uno de ellos este incluido,  no pueden faltar los dos ---------------------
         printf("Error: debe especificarse un archivo .vmx o .vmi\n");
         free(memoria);
