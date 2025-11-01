@@ -104,13 +104,11 @@ int main(int argc, char *argv[]) {
             disassembler(memoria, tablaSegmento, tablaSegmento[0].tamanio, registros);
     }
 
-
     if (indiceParametros != -1) {
         printf("Parámetros pasados al programa:\n");
         for (i = indiceParametros; i < argc; i++)
             printf("  %s\n", argv[i]);
     }
-
     free(memoria);
 
     

@@ -35,7 +35,6 @@ void disassembler(uint8_t memoria[], infoSegmento tablaSegmentos[], uint32_t tam
     
     while (PC < tablaSegmentos[registros[CS]].base + tablaSegmentos[registros[CS]].tamanio) {
         dirFisica = PC;
-        printf("dirFisica: %d",dirFisica);
         i=0;
         N=0;
         instruccion[i] = memoria[PC];

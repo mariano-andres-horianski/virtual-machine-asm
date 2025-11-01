@@ -508,11 +508,10 @@ void inicializar_stack(uint32_t registros[], uint8_t memoria[], infoSegmento tab
 }
 void ejecucion(uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint8_t memoria[], int argc, char* argv[]){
     //IP ya viene inicializado desde la lectura del encabezado
-    uint16_t base = tablaSegmento[registros[CS] >> 16].base;
     uint16_t tamanio = tablaSegmento[registros[CS] >> 16].tamanio;
     if(registros[SS] != 0xFFFFFFFF) inicializar_stack(registros,memoria,tablaSegmento,argc,argv);
     leerInstrucciones(memoria, registros, tablaSegmento);
-    while (registros[IP] != 0xFFFFFFFF && registros[IP] < base+tamanio ){
+    while (registros[IP] != 0xFFFFFFFF && registros[IP] < registros[CS]+tamanio ){
         leerInstrucciones(memoria, registros, tablaSegmento);
     }
 
