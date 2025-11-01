@@ -226,13 +226,14 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
         printf("Encabezado leido correctamente\n");
     }
     //imprimir los registros de segmento
+    /*
     printf("registros[CS]: %08x\n", registros[CS]);
     printf("registros[KS]: %08x\n", registros[DS]);
     printf("registros[ES]: %08x\n", registros[ES]);
     printf("registros[SS]: %08x\n", registros[SS]);
     printf("registros[KS]: %08x\n", registros[KS]);
     printf("registros[PS]: %08x\n", registros[PS]);
-
+    */
 
     fclose(arch);
 }
@@ -310,20 +311,21 @@ uint32_t get_segmento_registro(uint32_t operando, uint32_t registros[]) {
     return resultado;
 }
 
-void operandos(uint32_t *lectura,uint32_t tipo,uint32_t registros[],uint8_t memoria[]){
+void operandos(uint32_t *lectura,uint32_t tipo,uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmento[]){
     //lectura del valor de los operandos
+    uint16_t direccion = tablaSegmento[registros[IP] >> 16].base + (registros[IP] & 0xFFFF);
     *lectura = 0;
     switch (tipo){
         case 0b01: { //registro
-            *lectura = memoria[registros[IP]];
+            *lectura = memoria[direccion];
             break;
         }
         case 0b10: { //inmediato
-            *lectura = (memoria[registros[IP]] << 8)  |  memoria[registros[IP] + 1] ;
+            *lectura = (memoria[direccion] << 8)  |  memoria[direccion + 1] ;
             break;
         }
         case 0b11: { //direccion de memoria
-            *lectura = (memoria[registros[IP]] << 16) | ((memoria[registros[IP] + 1]  ) << 8) | (memoria[registros[IP]+ 2]);
+            *lectura = (memoria[direccion] << 16) | ((memoria[direccion + 1]  ) << 8) | (memoria[direccion + 2]);
             break;
         }
         default:
@@ -351,10 +353,6 @@ void leerInstrucciones(uint8_t memoria[], uint32_t registros[REG], infoSegmento 
                 (version == 2 && (registros[OPC] == 0x09 ||  registros[OPC] == 0x0A || registros[OPC] > 0x1F))){ //--------------------------
             printf("ERROR: operacion invalida. Operacion: %08X. version: %d\n",registros[OPC],version);//---------------------
             
-            printf("OPC: %08X\n",registros[OPC]);
-            printf("OP1: %08X\n",registros[OP1]);
-            printf("OP2: %08X\n",registros[OP2]);
-            printf("IP: %08X\n",registros[IP]);
             registros[IP] = 0xFFFFFFFF;
     }
     else
@@ -368,10 +366,6 @@ void leerInstrucciones(uint8_t memoria[], uint32_t registros[REG], infoSegmento 
         if ((((version == 1 && registros[OPC]!=0x0F )|| (version == 2 && registros[OPC] != 0x0E && registros[OPC] != 0x0F)) && registros[OP1]==0)||(registros[OPC]<=0x1F && registros[OPC]>=0x10 && registros[OP2]==0)){ //reviso si es una operacion invalida
             printf("ERROR: operacion invalida. Operacion: %08X. version: %d\n",registros[OPC],version);
             
-            printf("OPC: %08X\n",registros[OPC]);
-            printf("OP1: %08X\n",registros[OP1]);
-            printf("OP2: %08X\n",registros[OP2]);
-            printf("IP: %08X\n",registros[IP]);
             registros[IP] = 0xFFFFFFFF;
         }
         else {
@@ -379,33 +373,30 @@ void leerInstrucciones(uint8_t memoria[], uint32_t registros[REG], infoSegmento 
                 
                 registros[IP] = registros[IP] + 1;
 
-                if(registros[IP] + cantByteB > tablaSegmento[registros[CS] >> 16].base + tablaSegmento[registros[CS] >> 16].tamanio) {//--------------
+                if(registros[IP] > registros[CS] + tablaSegmento[registros[CS] >> 16].tamanio) {//--------------
                     printf("SEGMENTATION FAULT\n");
                     registros[IP] = 0xFFFFFFFF;
                     return;
                 }
-                if(registros[IP] + cantByteB > tablaSegmento[registros[CS] >> 16].base + tablaSegmento[registros[CS] >> 16].tamanio) {
+                if(registros[IP] + cantByteB > registros[CS]+ tablaSegmento[registros[CS] >> 16].tamanio) {
                     printf("ERROR: Lectura de operando 2 fuera de límites\n");
                     registros[IP] = 0xFFFFFFFF;
                     return;
                 } 
-                operandos(&lectura,registros[OP2],registros,memoria);
+                operandos(&lectura,registros[OP2],registros,memoria, tablaSegmento);
                 registros[OP2]=registros[OP2] << 24;
                 registros[OP2]=registros[OP2] | lectura;
                 registros[IP] = registros[IP] + cantByteB;
 
-                if(registros[IP] + cantByteA > tablaSegmento[registros[CS] >> 16].base + tablaSegmento[registros[CS] >> 16].tamanio) {
+                if(registros[IP] + cantByteA > registros[CS] + tablaSegmento[registros[CS] >> 16].tamanio) {
                     printf("ERROR: Lectura de operando 1 fuera de límites\n");
                     registros[IP] = 0xFFFFFFFF;
                     return;
                 } 
-                operandos(&lectura,registros[OP1],registros,memoria);
+                operandos(&lectura,registros[OP1],registros,memoria, tablaSegmento);
                 registros[OP1]=registros[OP1] << 24;
                 registros[OP1]=registros[OP1] | lectura;
                 registros[IP] = registros[IP] + cantByteA;
-                if(registros[OPC] == 0x0D){
-                    
-                }
             }
             //Aca ya tengo OPC, OP1 y OP2 para ejecutar
             //printf("DEBUG: Listo para ejecutar OPC=%X \n", registros[OPC]);

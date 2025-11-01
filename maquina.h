@@ -38,7 +38,7 @@ void set(uint32_t registros[], uint8_t memoria[], uint32_t operando1, int32_t op
 int32_t get(uint32_t operando,uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]);
 void disassembler(uint8_t memoria[], infoSegmento tablaSegmentos[], uint32_t tamMemoria, uint32_t registros[]);
 void leerInstrucciones(uint8_t memoria[], uint32_t registros[REG], infoSegmento tablaSegmento[]);
-void operandos(uint32_t *lectura,uint32_t tipo,uint32_t registros[],uint8_t memoria[]);
+void operandos(uint32_t *lectura,uint32_t tipo,uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmento[]);
 void actualizarCC(uint32_t registros[],int32_t resultado);
 uint32_t get_segmento_registro(uint32_t operando,uint32_t registros[]);
 uint32_t get_segmento(uint8_t cod_reg, uint32_t registros[], infoSegmento tablaSegmentos[]);
