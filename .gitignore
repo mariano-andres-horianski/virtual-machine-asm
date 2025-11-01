@@ -5,3 +5,5 @@ ejecutables/
 *.exe
 *.o
 *.asm
+*.vmi
+Estado_Actual
