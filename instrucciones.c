@@ -6,7 +6,8 @@ void SYS(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
     En ECX se almacena en la parte alta la cantidad de bytes por celda y en la baja la cantidad de celdas a leer/escribir
     En EAX se almacena el formato de lectura/escritura
     */
-    uint16_t cantBytes = (registros[ECX] >> 16) & 0x0000FFFF, segmento =26 + ((registros[EDX] >> 16) & 0x0000FFFF);
+    uint16_t cantBytes = (registros[ECX] >> 16) & 0x0000FFFF;
+    uint32_t segmento = get_segmento(EDX, registros, tablaSegmentos);
     uint16_t cantCeldas = (registros[ECX]) & 0x0000FFFF, direccion;
     uint8_t modo_lectura = registros[EAX],byteActual;
     int64_t valor; //esto es int64 porque tiene que tener signo y en caso de que a alguien se le ocurra celdas de tamaño mayor a 4 bytes
@@ -26,7 +27,7 @@ void SYS(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
                 for(j = 0; j < cantBytes; j++){
                     byteActual =  (valor >> ((cantBytes - 1 - j) * 8)) & 0xFF;
                     //llamamos a operacion memoria y no a set para no escribir exclusivamente 4 bytes de golpe
-                    operacion_memoria(registros,memoria,registros[EDX]+i*cantBytes+j, byteActual, ESCRITURA, 1, tablaSegmentos, registros[segmento]);
+                    operacion_memoria(registros,memoria,(registros[EDX] & 0x0000FFFF)+i*cantBytes+j, byteActual, ESCRITURA, 1, tablaSegmentos, segmento);
                 }
                 printf("[%04X]: ",(registros[MAR] & 0x0000FFFF) - cantBytes + 1);
                 if((modo_lectura & 0x10) != 0){
@@ -68,7 +69,7 @@ void SYS(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
                 valor = 0;
                 for(j = 0; j < cantBytes; j++){
                     //escribimos byte a byte, pasamos 0 en el valor para asegurarnos que el MBR va a estar limpio
-                    operacion_memoria(registros,memoria,registros[EDX]+i*cantBytes+j, 0, LECTURA, 1, tablaSegmentos, registros[segmento]);
+                    operacion_memoria(registros,memoria,(registros[EDX] & 0x0000FFFF)+i*cantBytes+j, 0, LECTURA, 1, tablaSegmentos, segmento);
                     byteActual = registros[MBR];
                     valor = valor | (byteActual << ((cantBytes - 1 - j) * 8));
                 }
@@ -108,28 +109,28 @@ void SYS(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
             if(cantCaracteres != -1)
                 for(i=0; i<cantCaracteres; i++){ 
                     caracter = getchar();
-                    operacion_memoria(registros,memoria,registros[EDX]+i, caracter, ESCRITURA, 1, tablaSegmentos, registros[segmento]);
+                    operacion_memoria(registros,memoria,(registros[EDX] & 0xFFFF)+i, caracter, ESCRITURA, 1, tablaSegmentos, segmento);
                 }
             else {
                 caracter = getchar();
                 i=0;
                 while(caracter != '\n'){
-                    operacion_memoria(registros,memoria,registros[EDX]+i, caracter, ESCRITURA, 1, tablaSegmentos, registros[segmento]);
+                    operacion_memoria(registros,memoria,(registros[EDX] & 0xFFFF)+i, caracter, ESCRITURA, 1, tablaSegmentos, segmento);
                     caracter = getchar();
                     i++;
                 }
             }
-            operacion_memoria(registros,memoria,registros[EDX]+i,'\0', ESCRITURA, 1, tablaSegmentos, registros[segmento]);
+            operacion_memoria(registros,memoria,(registros[EDX] & 0xFFFF)+i,'\0', ESCRITURA, 1, tablaSegmentos, segmento);
             break;
         }
         case 0x4: { //SRTING WRITE osea muestra un string
             i = 0;
-            operacion_memoria(registros,memoria,registros[EDX], 0, LECTURA, 1, tablaSegmentos, registros[segmento]);
-            char caracter = registros[MBR] & 0xFF;
+            operacion_memoria(registros,memoria,(registros[EDX] & 0xFFFF), 0, LECTURA, 1, tablaSegmentos, segmento);
+            caracter = registros[MBR] & 0xFF;
             while(caracter != '\0'){
                 printf("%c",caracter);
                 i++;
-                operacion_memoria(registros,memoria,registros[EDX]+i, 0, LECTURA, 1, tablaSegmentos, registros[segmento]);
+                operacion_memoria(registros,memoria,(registros[EDX] & 0xFFFF)+i, 0, LECTURA, 1, tablaSegmentos, segmento);
                 caracter = registros[MBR] & 0xFF;
             } 
             break;
@@ -164,32 +165,32 @@ void RND(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
     set(registros,memoria,registros[OP1], rand() % (get(registros[OP2], registros, memoria,tablaSegmentos) + 1),tablaSegmentos);
 }
 void JMP(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
-    registros[IP] = get(registros[OP1], registros, memoria, tablaSegmentos) & 0x0000FFFF;;
+    registros[IP] = (get(registros[OP1], registros, memoria, tablaSegmentos) & 0x0000FFFF) + registros[CS];
 }
 
 void JZ(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
     if((registros[CC] & (0x01<<30)) == (1<<30))
-        registros[IP] = get(registros[OP1], registros, memoria, tablaSegmentos) & 0x0000FFFF;
+        registros[IP] = (get(registros[OP1], registros, memoria, tablaSegmentos) & 0x0000FFFF) + registros[CS];
 }
 void JP(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
     if(registros[CC] == 0)
-        registros[IP] = get(registros[OP1], registros, memoria, tablaSegmentos) & 0x0000FFFF;
+        registros[IP] = (get(registros[OP1], registros, memoria, tablaSegmentos) & 0x0000FFFF) + registros[CS];
 }
 void JN(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
     if((registros[CC] & (0x02<<30)) == (2<<30))
-        registros[IP] = get(registros[OP1], registros, memoria, tablaSegmentos) & 0x0000FFFF;
+        registros[IP] = (get(registros[OP1], registros, memoria, tablaSegmentos) & 0x0000FFFF) + registros[CS];
 }
 void JNZ(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
     if((registros[CC] & (0x01<<30)) == 0)
-        registros[IP] = get(registros[OP1], registros, memoria, tablaSegmentos) & 0x0000FFFF;
+        registros[IP] = (get(registros[OP1], registros, memoria, tablaSegmentos) & 0x0000FFFF) + registros[CS];
 }
 void JNP(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
     if((registros[CC] & (0x02<<30)) == (2<<30) || (registros[CC] & 0x01<<30) == (1<<30))
-        registros[IP] = get(registros[OP1], registros, memoria, tablaSegmentos) & 0x0000FFFF;
+        registros[IP] = (get(registros[OP1], registros, memoria, tablaSegmentos) & 0x0000FFFF) + registros[CS];
 }
 void JNN(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){
     if((registros[CC] & (0x02<<30)) < (2<<30))
-        registros[IP] = get(registros[OP1], registros, memoria, tablaSegmentos) & 0x0000FFFF;
+        registros[IP] = (get(registros[OP1], registros, memoria, tablaSegmentos) & 0x0000FFFF) + registros[CS];
 }
 
 void ADD(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]){

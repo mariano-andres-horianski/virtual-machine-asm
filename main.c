@@ -9,14 +9,13 @@
 
 int main(int argc, char *argv[]) {
     
-
     uint8_t *memoria = NULL;
     uint32_t registros[REG];
     infoSegmento tablaSegmento[ENT];
     uint8_t num_segmentos = 0;
     int resultado = 0,i;
     uint8_t version = 0;
-
+    //uint32_t posicion_punteros = 0;
     char *archivoVMX = NULL;
     char *archivoVMI = NULL;
     int mostrarDisassembler = 0;
@@ -26,14 +25,14 @@ int main(int argc, char *argv[]) {
     char *nombreArchivo;
 
     uint32_t tamParamSegment;
-    int argc_param;
+    int argc_param = 0; // Inicializa el conteo de params del guest
+    uint32_t offset_punteros_guest = 0; // El offset a argv[] en el guest
 
     if (argc < 2 || !strstr(argv[0], "vmx")) {
         printf("Modo de uso:\n");
         printf("vmx [archivo.vmx|archivo.vmi] [archivo.vmi] [m=M] [-d] [-p param1 ...]\n");
         return 1;
     }
-
     //Procesamiento de argumentos
     for (i = 1; i < argc; i++) {
         if (strstr(argv[i], ".vmx"))
@@ -54,6 +53,9 @@ int main(int argc, char *argv[]) {
 
  
     memoria = (uint8_t *)malloc(tamano_memoria);
+    
+    memset(registros, 0, sizeof(registros));
+    memset(memoria, 0, tamano_memoria);
     if (!memoria) {
         printf("Error: no se pudo reservar memoria\n");
         return 1;
@@ -72,9 +74,12 @@ int main(int argc, char *argv[]) {
     tamParamSegment = 0;
     registros[31] = 0xFFFFFFFF;  // ps
     if (indiceParametros != -1) {  // primer parametro
-        argc_param = argc - indiceParametros;
+        argc_param = argc - indiceParametros; // Este es el argc del GUEST
         construirParamSegment(memoria, &argv[indiceParametros], argc_param, &tamParamSegment);
-
+        
+        // Calculamos dónde empezó el array de punteros argv[]
+        // Es el tamaño total MENOS el espacio de los punteros (argc * 4 bytes)
+        offset_punteros_guest = tamParamSegment - (argc_param * 4);
         tablaSegmento[0].base = 0x0000;
         tablaSegmento[0].tamanio = tamParamSegment;
         registros[31] = 0x00000000;
@@ -93,7 +98,7 @@ int main(int argc, char *argv[]) {
     }
 
     printf("Inicio de ejecucion del programa %s (version %d)\n", nombreArchivo, version);
-    ejecucion(registros, tablaSegmento, memoria, argc, argv); /// 
+    ejecucion(registros, tablaSegmento, memoria, argc_param, offset_punteros_guest);
     printf("Fin de ejecucion del programa\n");
 
     if (mostrarDisassembler) {

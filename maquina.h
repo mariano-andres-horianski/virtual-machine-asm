@@ -33,7 +33,7 @@ void inicioTablaSegmento(infoSegmento tabla[],uint16_t tamanio);
 void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSegmento[ENT], uint8_t memoria[], int *resultado, uint8_t *num_segmentos, uint32_t tamano_param_segment);
 void calcDirFisica(infoSegmento tablaSegmento[ENT],uint32_t registros[],int cantBytes);
 void operacion_memoria(uint32_t registros[], uint8_t memoria[], uint32_t direccion, int32_t valor, uint8_t tipo_operacion, uint8_t cantBytes,infoSegmento tablaSegmentos[], uint32_t segmento);
-void ejecucion(uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint8_t memoria[], int argc, char *argv[]);
+void ejecucion(uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint8_t memoria[], int argc_guest, uint32_t offset_punteros_guest);
 void set(uint32_t registros[], uint8_t memoria[], uint32_t operando1, int32_t operando2,infoSegmento tablaSegmentos[]);
 int32_t get(uint32_t operando,uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]);
 void disassembler(uint8_t memoria[], infoSegmento tablaSegmentos[], uint32_t tamMemoria, uint32_t registros[]);
@@ -47,6 +47,7 @@ void generar_imagen(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSe
 uint8_t detectarVersion(char *nombre);
 void construirParamSegment(uint8_t *memoria, char *argv[], int argc_param, uint32_t *tamano_param_segment);
 void disassemblerMV2(uint8_t memoria[], infoSegmento tablaSegmentos[], uint32_t registros[]);
+void inicializar_stack(uint32_t registros[], uint8_t memoria[], infoSegmento tablaSegmentos[], int argc_guest, uint32_t offset_punteros_guest);
 
 void RND(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]);
 void SYS(uint32_t registros[],uint8_t memoria[],infoSegmento tablaSegmentos[]);

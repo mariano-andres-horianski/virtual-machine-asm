@@ -286,6 +286,12 @@ void calcDirFisica(infoSegmento tablaSegmento[ENT],uint32_t registros[],int cant
         registros[MAR] = dirFisica;
     else{
         printf("numSegmento: %d, ENT: %d, tablaSegmento[numSegmento].base: %08x, dirFisica: %08X, limsegmento: %08X, limacceso: %08X \n",numSegmento,ENT,tablaSegmento[numSegmento].base,dirFisica,limSegmento,limAcceso);//-----
+        printf("reigstros[PS]: %08x, base: %08x\n", registros[PS], tablaSegmento[registros[PS] >> 16].base);
+        printf("reigstros[CS]: %08x, base: %08x\n", registros[CS], tablaSegmento[registros[CS] >> 16].base);
+        printf("reigstros[DS]: %08x, base: %08x\n", registros[DS], tablaSegmento[registros[DS] >> 16].base);
+        printf("reigstros[ES]: %08x, base: %08x\n", registros[ES], tablaSegmento[registros[ES] >> 16].base);
+        printf("reigstros[SS]: %08x, base: %08x\n", registros[SS], tablaSegmento[registros[SS] >> 16].base);
+        printf("reigstros[KS]: %08x, base: %08x\n", registros[KS], tablaSegmento[registros[KS] >> 16].base);
         printf("SEGMENTATION  FAULT\n"); // detecta uno de los 3 errores que se deben tener en cuenta segun requisitos
         registros[IP] = 0xFFFFFFFF;
         return;
@@ -293,7 +299,7 @@ void calcDirFisica(infoSegmento tablaSegmento[ENT],uint32_t registros[],int cant
 }
 uint32_t get_segmento_registro(uint32_t operando, uint32_t registros[]) {
     uint8_t registro = operando & 0x1F;
-    uint8_t segmento_registro = (operando >> 6) & 0x3;
+    uint8_t segmento_registro = (operando >> 6) & 0x3; //los primeros 5 bits tienen el codigo de registro, el 6to bit es 0, bits 7 y 8 son el segnmento
     uint32_t valor = registros[registro];
     uint32_t resultado=0;
 
@@ -404,23 +410,39 @@ void leerInstrucciones(uint8_t memoria[], uint32_t registros[REG], infoSegmento 
         }
     }
 }
+// En maquina.c
+
 uint32_t get_segmento(uint8_t cod_reg, uint32_t registros[], infoSegmento tablaSegmentos[]){
 
-    if(cod_reg < CS && cod_reg != BP && cod_reg != SP){ //El codigo de registro es uno de los de uso general
-        if((registros[cod_reg] & 0xFFFF0000) == 0) cod_reg = DS;
-        else return registros[cod_reg] & 0xFFFF0000;
+    // 1. Registros de propósito general (EAX, EBX, etc.)
+    if(cod_reg < CS && cod_reg != BP && cod_reg != SP){ 
+        // Comprobamos si el registro contiene un offset (parte alta es 0)
+        if((registros[cod_reg] & 0xFFFF0000) == 0) { 
+            // Si es un offset, decidimos qué segmento usar
+            if(registros[PS] != 0xFFFFFFFF)
+                return registros[PS]; // Usar Param Segment (0x00000000)
+            else
+                return registros[DS]; // Usar Data Segment (e.g., 0x00020000)
+        } else {
+            // El registro contiene una dirección lógica completa (e.g., 0x00020010)
+            return registros[cod_reg] & 0xFFFF0000;
+        }
     }
 
-    if(cod_reg == BP || cod_reg == SP) cod_reg = SS;
-
+    // 2. Registros de Pila (BP, SP)
+    if(cod_reg == BP || cod_reg == SP) {
+        return registros[SS];
+    }
+    
+    // 3. Registros de Segmento (CS, DS, KS, etc.)
+    // Devuelve el valor del registro de segmento (e.g., 0x00050000 para KS)
     return registros[cod_reg];
-
 }
 int32_t get(uint32_t operando,uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
     // considerar caso de la funcion SYS donde la cantidad de bytes es impredecible
     int tipo_operando = (operando >> 24) & 0x00000003;
     uint8_t cod_reg = (operando >> 16) & 0x0000001F; // en caso de que el operando sea direccion de memoria saco los 5 bits que indicarian un registro
-    uint8_t sub_segmento = (operando>>30) & 0x00000003;
+    uint8_t sub_segmento = (operando>>22) & 0x00000003;
     operando = operando & 0x0000FFFF;
     uint32_t direccion = registros[cod_reg] + (int16_t)(operando & 0x0000FFFF);//le saco el codigo de registro al operando y hago el casteo por si el offset es negativo
 
@@ -436,7 +458,7 @@ int32_t get(uint32_t operando,uint32_t registros[], uint8_t memoria[],infoSegmen
         }
     else {
         //el operando es direccion de memoria
-        direccion += 4-(4-sub_segmento);
+        direccion += sub_segmento;
         operacion_memoria(registros, memoria, direccion, 0, LECTURA, 4-sub_segmento, tablaSegmentos, get_segmento(cod_reg, registros, tablaSegmentos)); //4 bytes porque es el tamaño de cada celda
         return (int32_t)registros[MBR];
     }
@@ -462,6 +484,7 @@ void set_segmento_registro(uint32_t registros[],uint32_t operando1, int32_t oper
 void set(uint32_t registros[], uint8_t memoria[], uint32_t operando1, int32_t operando2,infoSegmento tablaSegmentos[]){
     //operando 2 será inmediato siempre en esta función, pues se la llamará con el argumento get()
     int tipo_operando1 = (operando1 >> 24) & 0x00000003;
+    uint8_t sub_segmento = (operando1>>22) & 0x00000003;
     uint32_t direccion;
     uint8_t cod_reg = (operando1 >> 16) & 0x0000001F,reg = operando1 & 0x1F;
     operando1 = operando1 & 0x00FFFFFF;
@@ -474,15 +497,20 @@ void set(uint32_t registros[], uint8_t memoria[], uint32_t operando1, int32_t op
         operacion_memoria(registros, memoria, direccion, operando2, ESCRITURA, 4,tablaSegmentos, get_segmento(cod_reg, registros, tablaSegmentos));
     }
 }
-void inicializar_stack(uint32_t registros[], uint8_t memoria[], infoSegmento tablaSegmentos[], int argc, char* argv[]){
+void inicializar_stack(uint32_t registros[], uint8_t memoria[], infoSegmento tablaSegmentos[], int argc_guest, uint32_t offset_punteros_guest){    
     /*
     Hay que inicializar el stack guardando en la posición más "al fondo" (con el IP más alto) el puntero al arreglo de argumentos
     Después se pone arriba (push) la cantidad de argumentos
     Y arriba de eso el RET que haría finalizar el programa (pues igualaría el SP a -1)
     */
     const int cantBytes = 4;
-    uint32_t puntero_args = (argc == 0) ? 0xFFFFFFFF : (uint32_t)*argv;
-    uint32_t cant_args = argc;
+    uint32_t puntero_args;
+    if (argc_guest == 0) {
+        puntero_args = 0xFFFFFFFF;
+    } else {
+        puntero_args = (0x0000 << 16) | (offset_punteros_guest & 0xFFFF);
+    }
+    uint32_t cant_args = argc_guest;
     int i;
     //establezco byte a byte las primeras posiciones porque es más fácil que andar creando un falso operando a mano para llamar a PUSH
     // en la posicion más abajo del stack (el fondo de la pila) pongo el puntero al inicio del arreglo de argumentos
@@ -506,10 +534,10 @@ void inicializar_stack(uint32_t registros[], uint8_t memoria[], infoSegmento tab
         memoria[(registros[MAR] & 0x0000FFFF) + i] = 0xFF;
     }
 }
-void ejecucion(uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint8_t memoria[], int argc, char* argv[]){
+void ejecucion(uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint8_t memoria[], int argc, uint32_t posicion_punteros){
     //IP ya viene inicializado desde la lectura del encabezado
     uint16_t tamanio = tablaSegmento[registros[CS] >> 16].tamanio;
-    if(registros[SS] != 0xFFFFFFFF) inicializar_stack(registros,memoria,tablaSegmento,argc,argv);
+    if(registros[SS] != 0xFFFFFFFF) inicializar_stack(registros,memoria,tablaSegmento,argc,posicion_punteros);
     leerInstrucciones(memoria, registros, tablaSegmento);
     while (registros[IP] != 0xFFFFFFFF && registros[IP] < registros[CS]+tamanio ){
         leerInstrucciones(memoria, registros, tablaSegmento);
@@ -567,8 +595,8 @@ uint8_t detectarVersion(char *nombre) {
 
 void construirParamSegment(uint8_t *memoria, char *argv[], int argc_param, uint32_t *tamano_param_segment) {
     uint32_t offset = 0;    // donde escribir el proximo string
-    uint32_t *punteros = NULL;  // punteros de 4 bytes
     int i, len;
+    uint32_t *punteros = NULL;
     punteros = (uint32_t *)malloc(argc_param * sizeof(uint32_t));
     if (!punteros) {
         printf("Error: no se pudo reservar memoria para punteros de Param Segment\n");
@@ -596,7 +624,6 @@ void construirParamSegment(uint8_t *memoria, char *argv[], int argc_param, uint3
             offset += 4;
         }
         *tamano_param_segment = offset;
-        free(punteros);
     }
     
 }
