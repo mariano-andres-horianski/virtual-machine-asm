@@ -91,6 +91,7 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
                             tamanio = (tamanio << 8) | byte_aux;
                             if(i%2){
                                     //terminé de leer el tamaño de este segmento
+                                    printf("Segmento %d: base %04x, tamaño %04x\n",*num_segmentos, base, tamanio);
                                 if(tamanio!=0){
                                     tablaSegmento[*num_segmentos].base = base;
                                     base += tamanio;
@@ -151,7 +152,7 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
                             if(fread(&byte_aux, 1, 1, arch) == 1){
                                 tamanio_mem_principal = (tamanio_mem_principal << 8) | byte_aux;
                                 if(fread(&byte_aux, 1, 1, arch) == 1){
-                                    tamanio_mem_principal = tamanio_mem_principal | byte_aux; // tercera linea del header de la vmi es el tamaño de la memoria principal
+                                    tamanio_mem_principal = (tamanio_mem_principal << 8) | byte_aux; // tercera linea del header de la vmi es el tamaño de la memoria principal
                                 }
                                 //toca leer registros uno por uno en el header de la vmi, luego la tabla de descriptores de segmentos
                                 //para leer los vectores se leen byte a byte las siguientes 32 celdas de cuatro bytes, cada celda es un registro
@@ -191,7 +192,7 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
                                 }
                                 //luego byte por byte la memoria
                                 //los bytes se añaden en el orden que se leen (el primer byte en la posicion 0 del vector memoria, el segundo en la 1 y asi)
-                                for(i = 0; i < tamanio_mem_principal; i++){
+                                for(i = 0; i < tamanio_mem_principal * 1024; i++){
                                     if(fread(&byte_aux, 1, 1, arch) == 1){
                                         memoria[i] = byte_aux;
                                     }
@@ -226,14 +227,7 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
         printf("Encabezado leido correctamente\n");
     }
     //imprimir los registros de segmento
-    /*
-    printf("registros[CS]: %08x\n", registros[CS]);
-    printf("registros[KS]: %08x\n", registros[DS]);
-    printf("registros[ES]: %08x\n", registros[ES]);
-    printf("registros[SS]: %08x\n", registros[SS]);
-    printf("registros[KS]: %08x\n", registros[KS]);
-    printf("registros[PS]: %08x\n", registros[PS]);
-    */
+    
 
     fclose(arch);
 }
@@ -267,6 +261,7 @@ void operacion_memoria(uint32_t registros[], uint8_t memoria[], uint32_t direcci
     }
     else{//tipo_operacion == LECTURA
         //se llama acá con 0 en el argumento 'valor' por lo tanto el MBR tiene 0
+
         for(i = 0; i < cantBytes; i++){
             registros[MBR] = registros[MBR] | (memoria[(registros[MAR] & 0x0000FFFF) + i] << (8 * (cantBytes - 1 - i)));
         }
@@ -278,6 +273,8 @@ void calcDirFisica(infoSegmento tablaSegmento[ENT],uint32_t registros[],int cant
     // Deja en los bytes menos significativos del MAR la direccion fisica
     uint32_t numSegmento = (registros[LAR] >> 16) & 0x0000FFFF;
     uint32_t desplaz = registros[LAR] & 0x0000FFFF; // obtengo los 2 bytes menos significativos
+    //printf("DEBUG calcDirFisica: LAR=%08X (Seg:%d, Off:%04X), cantBytes=%d\n", 
+    //       registros[LAR], numSegmento, desplaz, cantBytes);
     uint32_t dirFisica = tablaSegmento[numSegmento].base + desplaz;
     uint32_t limSegmento = tablaSegmento[numSegmento].base + tablaSegmento[numSegmento].tamanio;
     uint32_t limAcceso = dirFisica + cantBytes;
@@ -286,12 +283,7 @@ void calcDirFisica(infoSegmento tablaSegmento[ENT],uint32_t registros[],int cant
         registros[MAR] = dirFisica;
     else{
         printf("numSegmento: %d, ENT: %d, tablaSegmento[numSegmento].base: %08x, dirFisica: %08X, limsegmento: %08X, limacceso: %08X \n",numSegmento,ENT,tablaSegmento[numSegmento].base,dirFisica,limSegmento,limAcceso);//-----
-        printf("reigstros[PS]: %08x, base: %08x\n", registros[PS], tablaSegmento[registros[PS] >> 16].base);
-        printf("reigstros[CS]: %08x, base: %08x\n", registros[CS], tablaSegmento[registros[CS] >> 16].base);
-        printf("reigstros[DS]: %08x, base: %08x\n", registros[DS], tablaSegmento[registros[DS] >> 16].base);
-        printf("reigstros[ES]: %08x, base: %08x\n", registros[ES], tablaSegmento[registros[ES] >> 16].base);
-        printf("reigstros[SS]: %08x, base: %08x\n", registros[SS], tablaSegmento[registros[SS] >> 16].base);
-        printf("reigstros[KS]: %08x, base: %08x\n", registros[KS], tablaSegmento[registros[KS] >> 16].base);
+        
         printf("SEGMENTATION  FAULT\n"); // detecta uno de los 3 errores que se deben tener en cuenta segun requisitos
         registros[IP] = 0xFFFFFFFF;
         return;
@@ -353,11 +345,9 @@ void leerInstrucciones(uint8_t memoria[], uint32_t registros[REG], infoSegmento 
     registros[OP1]=(instruccion >> 4) & 0x03;
     cantByteA = registros[OP1];
 
-    
-
-    if ((version == 1 && ((registros[OPC] > 0x08 && registros[OPC] < 0x0F) || (registros[OPC] > 0x1F))) || 
-                (version == 2 && (registros[OPC] == 0x09 ||  registros[OPC] == 0x0A || registros[OPC] > 0x1F))){ //--------------------------
-            printf("ERROR: operacion invalida. Operacion: %08X. version: %d\n",registros[OPC],version);//---------------------
+    if (((version == 1 && imagenVMI == 0) && ((registros[OPC] > 0x08 && registros[OPC] < 0x0F) || (registros[OPC] > 0x1F))) || 
+                ((version == 2 || (version == 1 && imagenVMI == 1)) && (registros[OPC] == 0x09 ||  registros[OPC] == 0x0A || registros[OPC] > 0x1F))){ //--------------------------
+            printf("Primer printf. ERROR: operacion invalida. Operacion: %08X. version: %d, imagenVMI=%d\n",registros[OPC],version,imagenVMI);//---------------------
             
             registros[IP] = 0xFFFFFFFF;
     }
@@ -369,8 +359,11 @@ void leerInstrucciones(uint8_t memoria[], uint32_t registros[REG], infoSegmento 
             cantByteB = 0;
             registros[OP2] = 0;
         }
-        if ((((version == 1 && registros[OPC]!=0x0F )|| (version == 2 && registros[OPC] != 0x0E && registros[OPC] != 0x0F)) && registros[OP1]==0)||(registros[OPC]<=0x1F && registros[OPC]>=0x10 && registros[OP2]==0)){ //reviso si es una operacion invalida
-            printf("ERROR: operacion invalida. Operacion: %08X. version: %d\n",registros[OPC],version);
+        if (((((version == 1 && imagenVMI == 0) && registros[OPC]!=0x0F )|| 
+            ((version == 2 || (version == 1 && imagenVMI == 1)) && registros[OPC] != 0x0E && registros[OPC] != 0x0F && registros[OPC] != 0x0D))
+            && registros[OP1]==0)||(registros[OPC]<=0x1F && registros[OPC]>=0x10 && registros[OP2]==0)){ //reviso si es una operacion invalida
+            
+            printf("ERROR: operacion invalida. Operacion: %08X. version: %d, , imagenVMI=%d\n",registros[OPC],version, imagenVMI);
             
             registros[IP] = 0xFFFFFFFF;
         }
@@ -405,6 +398,11 @@ void leerInstrucciones(uint8_t memoria[], uint32_t registros[REG], infoSegmento 
                 registros[IP] = registros[IP] + cantByteA;
             }
             //Aca ya tengo OPC, OP1 y OP2 para ejecutar
+            //printf("DEBUG: Executing at CS:[%04X] -> OPC=%02X, OP1=%08X, OP2=%08X\n", 
+            //       (registros[IP] & 0xFFFF) - cantByteA - cantByteB - 1, 
+            //       registros[OPC], 
+            //       registros[OP1], 
+            //       registros[OP2]);
             //printf("DEBUG: Listo para ejecutar OPC=%X \n", registros[OPC]);
             instrucciones[registros[OPC]](registros,memoria,tablaSegmento);
         }
@@ -419,23 +417,35 @@ uint32_t get_segmento(uint8_t cod_reg, uint32_t registros[], infoSegmento tablaS
         // Comprobamos si el registro contiene un offset (parte alta es 0)
         if((registros[cod_reg] & 0xFFFF0000) == 0) { 
             // Si es un offset, decidimos qué segmento usar
-            if(registros[PS] != 0xFFFFFFFF)
+            if(registros[PS] != 0xFFFFFFFF){
+                // ---------- ADD THIS PRINTF ----------
+                //printf("DEBUG get_segmento: reg %d is offset, returning PS (%08X)\n", cod_reg, registros[PS]);
                 return registros[PS]; // Usar Param Segment (0x00000000)
-            else
+            }
+            else{
+                // ---------- ADD THIS PRINTF ----------
+                //printf("DEBUG get_segmento: reg %d is offset, returning DS (%08X)\n", cod_reg, registros[DS]);
                 return registros[DS]; // Usar Data Segment (e.g., 0x00020000)
+            }
         } else {
             // El registro contiene una dirección lógica completa (e.g., 0x00020010)
+            // ---------- ADD THIS PRINTF ----------
+            //printf("DEBUG get_segmento: reg %d is FAR PTR, returning (%08X)\n", cod_reg, registros[cod_reg] & 0xFFFF0000);
             return registros[cod_reg] & 0xFFFF0000;
         }
     }
 
     // 2. Registros de Pila (BP, SP)
     if(cod_reg == BP || cod_reg == SP) {
+        // ---------- ADD THIS PRINTF ----------
+        printf("DEBUG get_segmento: reg %d is Stack, returning SS (%08X)\n", cod_reg, registros[SS]);
         return registros[SS];
     }
     
     // 3. Registros de Segmento (CS, DS, KS, etc.)
     // Devuelve el valor del registro de segmento (e.g., 0x00050000 para KS)
+    // ---------- ADD THIS PRINTF ----------
+    printf("DEBUG get_segmento: reg %d is SegReg, returning (%08X)\n", cod_reg, registros[cod_reg]);
     return registros[cod_reg];
 }
 int32_t get(uint32_t operando,uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
@@ -459,8 +469,26 @@ int32_t get(uint32_t operando,uint32_t registros[], uint8_t memoria[],infoSegmen
     else {
         //el operando es direccion de memoria
         //direccion += sub_segmento;
+
         operacion_memoria(registros, memoria, direccion, 0, LECTURA, 4-sub_segmento, tablaSegmentos, get_segmento(cod_reg, registros, tablaSegmentos)); //4 bytes porque es el tamaño de cada celda
-        return (int32_t)registros[MBR];
+        
+        int32_t valor_leido = (int32_t)registros[MBR];
+        uint8_t cantBytes = 4 - sub_segmento;
+
+        if (cantBytes == 1) { // 1 byte read (e.g., b[...])
+            // Si el bit 7 (0x80) está encendido, es negativo
+            if (valor_leido & 0x80) {
+                valor_leido = valor_leido | 0xFFFFFF00;
+            }
+        } else if (cantBytes == 2) { // 2 bytes read (e.g., w[...])
+            // Si el bit 15 (0x8000) está encendido, es negativo
+            if (valor_leido & 0x8000) {
+                valor_leido = valor_leido | 0xFFFF0000;
+            }
+        }
+        // (No se necesita caso para 3 o 4 bytes)
+
+        return valor_leido;
     }
 }
 void set_segmento_registro(uint32_t registros[],uint32_t operando1, int32_t operando2,uint8_t reg){
@@ -488,7 +516,7 @@ void set(uint32_t registros[], uint8_t memoria[], uint32_t operando1, int32_t op
     uint16_t cantBytes = 4 - sub_segmento;
     uint32_t direccion;
     uint8_t cod_reg = (operando1 >> 16) & 0x0000001F,reg = operando1 & 0x1F;
-    operando1 = operando1 & 0x00FFFFFF;
+    //operando1 = operando1 & 0x00FFFFFF;
 
     if (tipo_operando1 == 1)
         set_segmento_registro(registros,operando1, operando2, reg);

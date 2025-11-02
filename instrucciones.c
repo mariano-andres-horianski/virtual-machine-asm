@@ -19,8 +19,30 @@ void SYS(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
         case  0x1: { //lectura
             //guarda en memoria
             for(i = 0; i<cantCeldas; i++){
-                if(scanf("%lld", &valor) != 1) {
+                int scan_result; // Variable para guardar el resultado de scanf
+
+                // --- INICIO DE LA CORRECCIÓN ---
+                // Leemos el formato de EAX (modo_lectura).
+                // Damos prioridad a Hexa, luego Octal, y por defecto usamos Decimal.
+                
+                if((modo_lectura & 0x08) != 0) { // 0x08 = Formato Hexadecimal
+                    scan_result = scanf("%llx", &valor);
+                } else if ((modo_lectura & 0x04) != 0) { // 0x04 = Formato Octal
+                    scan_result = scanf("%llo", &valor);
+                } else { // 0x01 o default = Formato Decimal
+                    scan_result = scanf("%lld", &valor);
+                }
+                // --- FIN DE LA CORRECCIÓN ---
+
+                // Ahora el chequeo de error funciona para cualquier formato
+                if(scan_result != 1) { 
                     printf("ERROR: Entrada inválida\n");
+                    
+                    // Es buena práctica limpiar el búfer si scanf falla,
+                    // para evitar un bucle de error infinito.
+                    int c;
+                    while ((c = getchar()) != '\n' && c != EOF);
+
                     STOP(registros, memoria, tablaSegmentos);
                     return;
                 }
@@ -39,7 +61,7 @@ void SYS(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
                 }
                 if((modo_lectura & 0x08) != 0){
                     //hexa
-                    printf("%x",valor);
+                    printf("%llx",valor);
                     printf(" ");
                 }
                 if((modo_lectura & 0x04) != 0){
@@ -96,7 +118,7 @@ void SYS(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
                     printf(" ");
                 }
                 if((modo_lectura & 0x01) != 0){
-                    printf("%d",valor);
+                    printf("%lld",valor);
                 }
             printf("\n");
             }
@@ -105,21 +127,36 @@ void SYS(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
         break;
         case 0x3: {//STRING READ osea guarda un string en memoria
             uint16_t cantCaracteres = registros[ECX] & 0xFFFF;
-            char caracter;
-            if(cantCaracteres != -1)
-                for(i=0; i<cantCaracteres; i++){ 
+            i = 0; // Asegurarse de que i comience en 0
+
+            if(cantCaracteres != 0xFFFF) { 
+                // Modo: Leer N caracteres
+                for(i=0; i < cantCaracteres; i++){ 
                     caracter = getchar();
+                    if (caracter == '\n' || caracter == EOF) {
+                        break; // Detenerse si se presiona Enter o EOF
+                    }
                     operacion_memoria(registros,memoria,(registros[EDX] & 0xFFFF)+i, caracter, ESCRITURA, 1, tablaSegmentos, segmento);
                 }
+
+                // Si se detuvo por un 'break' (newline), ya está limpio.
+                // Si se leyeron N caracteres pero *no* el newline, limpiar el buffer AHORA.
+                if (i == cantCaracteres && caracter != '\n' && caracter != EOF) {
+                    int temp_c;
+                    while ((temp_c = getchar()) != '\n' && temp_c != EOF);
+                }
+            }
             else {
+                //leer hasta newline
                 caracter = getchar();
-                i=0;
-                while(caracter != '\n'){
+                while(caracter != '\n' && caracter != EOF){
                     operacion_memoria(registros,memoria,(registros[EDX] & 0xFFFF)+i, caracter, ESCRITURA, 1, tablaSegmentos, segmento);
                     caracter = getchar();
                     i++;
                 }
             }
+            
+            // Poner el terminador NUL en ambos casos
             operacion_memoria(registros,memoria,(registros[EDX] & 0xFFFF)+i,'\0', ESCRITURA, 1, tablaSegmentos, segmento);
             break;
         }

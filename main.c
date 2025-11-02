@@ -14,7 +14,7 @@ int main(int argc, char *argv[]) {
     infoSegmento tablaSegmento[ENT];
     uint8_t num_segmentos = 0;
     int resultado = 0,i;
-    uint8_t version = 0;
+    uint8_t versionlocal = 0;
     //uint32_t posicion_punteros = 0;
     char *archivoVMX = NULL;
     char *archivoVMI = NULL;
@@ -62,8 +62,8 @@ int main(int argc, char *argv[]) {
     }
 
     //Cargar archivo y detectar version
-    //nombreArchivo = archivoVMX ? archivoVMX : archivoVMI; --------------------------------------------
-    nombreArchivo = archivoVMX;
+    nombreArchivo = archivoVMX ? archivoVMX : archivoVMI; 
+    //nombreArchivo = archivoVMX;
     nombreArchivo2 = archivoVMI;
     if (!nombreArchivo && !nombreArchivo2) { //- me aseguro que uno de ellos este incluido,  no pueden faltar los dos ---------------------
         printf("Error: debe especificarse un archivo .vmx o .vmi\n");
@@ -88,7 +88,10 @@ int main(int argc, char *argv[]) {
     }
 
 
-    version = detectarVersion(nombreArchivo);
+    versionlocal = detectarVersion(nombreArchivo);
+    if (nombreArchivo2) {
+        versionlocal = 2;
+    }
     leerEncabezado(nombreArchivo, registros, tablaSegmento, memoria, &resultado, &num_segmentos, tamParamSegment);
 
     if (!resultado) {
@@ -97,13 +100,13 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    printf("Inicio de ejecucion del programa %s (version %d)\n", nombreArchivo, version);
+    printf("Inicio de ejecucion del programa %s (version %d)\n", nombreArchivo, versionlocal);
     ejecucion(registros, tablaSegmento, memoria, argc_param, offset_punteros_guest);
     printf("Fin de ejecucion del programa\n");
 
     if (mostrarDisassembler) {
-        printf("version :   %u\n",version);//-----------------------------------------------------------------------------
-        if (version == 2)
+        printf("version :   %u\n",versionlocal);//-----------------------------------------------------------------------------
+        if (versionlocal == 2)
             disassemblerMV2(memoria, tablaSegmento, registros);
         else
             disassembler(memoria, tablaSegmento, tablaSegmento[0].tamanio, registros);

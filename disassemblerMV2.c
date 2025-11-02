@@ -155,6 +155,7 @@ void disassemblerMV2(uint8_t memoria[], infoSegmento tablaSegmentos[], uint32_t 
             sector=operando1;
             operando1=operando1 << 2;
             operando1=operando1 >> 2; //como es unsigned pone cero en los primeros 2 bits
+            
             if (tipo1 == 3){ //memoria
                 codRegMem = (operando1 >> 16) & 0x1F;
                 offsetMem=(operando1&0xFFFF);
@@ -207,6 +208,7 @@ void disassemblerMV2(uint8_t memoria[], infoSegmento tablaSegmentos[], uint32_t 
             sector=operando2;
             operando2=operando2 << 2;
             operando2=operando2 >> 2; //como es unsigned pone cero en los primeros 2 bits
+            
             if (tipo2 == 3){ //memoria
                 codRegMem = (operando2 >> 16) & 0x1F;
                 offsetMem=(operando2&0xFFFF);
