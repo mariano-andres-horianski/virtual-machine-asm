@@ -458,7 +458,7 @@ int32_t get(uint32_t operando,uint32_t registros[], uint8_t memoria[],infoSegmen
         }
     else {
         //el operando es direccion de memoria
-        direccion += sub_segmento;
+        //direccion += sub_segmento;
         operacion_memoria(registros, memoria, direccion, 0, LECTURA, 4-sub_segmento, tablaSegmentos, get_segmento(cod_reg, registros, tablaSegmentos)); //4 bytes porque es el tamaño de cada celda
         return (int32_t)registros[MBR];
     }
@@ -485,6 +485,7 @@ void set(uint32_t registros[], uint8_t memoria[], uint32_t operando1, int32_t op
     //operando 2 será inmediato siempre en esta función, pues se la llamará con el argumento get()
     int tipo_operando1 = (operando1 >> 24) & 0x00000003;
     uint8_t sub_segmento = (operando1>>22) & 0x00000003;
+    uint16_t cantBytes = 4 - sub_segmento;
     uint32_t direccion;
     uint8_t cod_reg = (operando1 >> 16) & 0x0000001F,reg = operando1 & 0x1F;
     operando1 = operando1 & 0x00FFFFFF;
@@ -494,7 +495,7 @@ void set(uint32_t registros[], uint8_t memoria[], uint32_t operando1, int32_t op
     else{
         direccion = registros[cod_reg] + (int16_t) (operando1 & 0x0000FFFF);
 
-        operacion_memoria(registros, memoria, direccion, operando2, ESCRITURA, 4,tablaSegmentos, get_segmento(cod_reg, registros, tablaSegmentos));
+        operacion_memoria(registros, memoria, direccion, operando2, ESCRITURA, cantBytes,tablaSegmentos, get_segmento(cod_reg, registros, tablaSegmentos));
     }
 }
 void inicializar_stack(uint32_t registros[], uint8_t memoria[], infoSegmento tablaSegmentos[], int argc_guest, uint32_t offset_punteros_guest){    
