@@ -178,6 +178,7 @@ void disassemblerMV2(uint8_t memoria[], infoSegmento tablaSegmentos[], uint32_t 
             }
             else 
                 if (tipo1 == 1){ //registro
+                operando1 = operando1 & 0x1F;
                     if (operando1>=EAX&&operando1<=EFX){
                         sector=sector >> 6;
                         car=nombresRegistrosMV2[operando1][1];
@@ -231,6 +232,8 @@ void disassemblerMV2(uint8_t memoria[], infoSegmento tablaSegmentos[], uint32_t 
             }
             else 
                 if (tipo2 == 1){ //registro
+                    //mostrar operando y sector de registro
+                    operando2 = operando2 & 0x1F;
                     if (operando2>=EAX&&operando2<=EFX){
                         sector=sector >> 6;
                         car=nombresRegistrosMV2[operando2][1];

@@ -112,7 +112,24 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
                         }
                         
                     }
+                     if (registros[KS]!=0xFFFFFFFF){
+                        if(registros[PS]!=0xFFFFFFFF){
+                            uint16_t baseKS=tablaSegmento[1].base;
+                            for (i=1;i<*num_segmentos-1;i++){
+                                tablaSegmento[i].base+=tablaSegmento[*num_segmentos-1].tamanio;
+                            }
+                            tablaSegmento[*num_segmentos-1].base=baseKS;
+                        }
 
+
+                        
+                        else {
+                            for (i=0;i<*num_segmentos-1;i++){
+                                tablaSegmento[i].base+=tablaSegmento[*num_segmentos-1].tamanio;
+                            }
+                            tablaSegmento[*num_segmentos-1].base=0;
+                        }
+                    }
                     if(fread(&byte_aux, 1, 1, arch) == 1){
                              entry_offset = (entry_offset << 8) | byte_aux;
                             if(fread(&byte_aux, 1, 1, arch)){
@@ -292,6 +309,7 @@ void calcDirFisica(infoSegmento tablaSegmento[ENT],uint32_t registros[],int cant
 uint32_t get_segmento_registro(uint32_t operando, uint32_t registros[]) {
     uint8_t registro = operando & 0x1F;
     uint8_t segmento_registro = (operando >> 6) & 0x3; //los primeros 5 bits tienen el codigo de registro, el 6to bit es 0, bits 7 y 8 son el segnmento
+    printf("Segmento registro: %d\n", segmento_registro);
     uint32_t valor = registros[registro];
     uint32_t resultado=0;
 
@@ -302,7 +320,7 @@ uint32_t get_segmento_registro(uint32_t operando, uint32_t registros[]) {
                 break;
         case 2: resultado=(valor >> 8) & 0xFF;
                 break;
-        case 3: resultado=valor & 0xFFFF;
+        case 3: resultado=valor & 0x0000FFFF;
                 break;
     }
 
