@@ -91,7 +91,6 @@ void leerEncabezado(char nombre[], uint32_t registros[REG], infoSegmento tablaSe
                             tamanio = (tamanio << 8) | byte_aux;
                             if(i%2){
                                     //terminé de leer el tamaño de este segmento
-                                    printf("Segmento %d: base %04x, tamaño %04x\n",*num_segmentos, base, tamanio);
                                 if(tamanio!=0){
                                     tablaSegmento[*num_segmentos].base = base;
                                     base += tamanio;
@@ -309,7 +308,6 @@ void calcDirFisica(infoSegmento tablaSegmento[ENT],uint32_t registros[],int cant
 uint32_t get_segmento_registro(uint32_t operando, uint32_t registros[]) {
     uint8_t registro = operando & 0x1F;
     uint8_t segmento_registro = (operando >> 6) & 0x3; //los primeros 5 bits tienen el codigo de registro, el 6to bit es 0, bits 7 y 8 son el segnmento
-    printf("Segmento registro: %d\n", segmento_registro);
     uint32_t valor = registros[registro];
     uint32_t resultado=0;
 
@@ -455,15 +453,11 @@ uint32_t get_segmento(uint8_t cod_reg, uint32_t registros[], infoSegmento tablaS
 
     // 2. Registros de Pila (BP, SP)
     if(cod_reg == BP || cod_reg == SP) {
-        // ---------- ADD THIS PRINTF ----------
-        printf("DEBUG get_segmento: reg %d is Stack, returning SS (%08X)\n", cod_reg, registros[SS]);
         return registros[SS];
     }
     
     // 3. Registros de Segmento (CS, DS, KS, etc.)
     // Devuelve el valor del registro de segmento (e.g., 0x00050000 para KS)
-    // ---------- ADD THIS PRINTF ----------
-    printf("DEBUG get_segmento: reg %d is SegReg, returning (%08X)\n", cod_reg, registros[cod_reg]);
     return registros[cod_reg];
 }
 int32_t get(uint32_t operando,uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
@@ -517,13 +511,13 @@ void set_segmento_registro(uint32_t registros[],uint32_t operando1, int32_t oper
             registros[reg] = operando2;
             break;
         case 1://Por ejemplo AL
-            registros[reg] = (registros[reg] & 0xFFFFFF00) | operando2;
+            registros[reg] = (registros[reg] & 0xFFFFFF00) | (operando2 & 0xFF);
             break;
         case 2://Por ejemplo AH
             registros[reg] = (registros[reg] & 0xFFFF00FF) | (operando2<<8);
             break;
         case 3://Por ejemplo AX
-            registros[reg] = (registros[reg] & 0xFFFF0000) | operando2;
+            registros[reg] = (registros[reg] & 0xFFFF0000) | (operando2 & 0xFFFF);
             break;
     }
 }
@@ -537,7 +531,7 @@ void set(uint32_t registros[], uint8_t memoria[], uint32_t operando1, int32_t op
     //operando1 = operando1 & 0x00FFFFFF;
 
     if (tipo_operando1 == 1)
-        set_segmento_registro(registros,operando1, operando2, reg);
+        set_segmento_registro(registros,operando1 & 0xFFFF, operando2, reg);
     else{
         direccion = registros[cod_reg] + (int16_t) (operando1 & 0x0000FFFF);
 
