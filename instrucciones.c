@@ -381,21 +381,9 @@ void CALL(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[])
     PUSH(registros,memoria,tablaSegmentos);
     registros[OP1] = aux;
     JMP(registros,memoria,tablaSegmentos);
-}/*
+}
 void RET(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
-   int32_t operando_registro = 0x0 | (0x1 << 24) | 0x7;
-   printf("RET\n");
-   printf("IP: %08X\n",registros[IP]);
-   registros[OP1] = operando_registro;
-   //no puedo usar POP
-   //leer los siguientes 4 bytes y ponerlos en el IP
-   operacion_memoria(registros,memoria,registros[SP],0,LECTURA,4,tablaSegmentos,registros[SS]);
-   registros[IP] = registros[MBR];
-   registros[SP] += 4;
-   printf("IP: %08X\n",registros[IP]);
-}*/
-void RET(uint32_t registros[], uint8_t memoria[],infoSegmento tablaSegmentos[]){
-   int32_t operando_registro = 0x0 | (0x1 << 24) | 0x3;  // ✓ registro IP
+   int32_t operando_registro = 0x0 | (0x1 << 24) | 0x3;
    registros[OP1] = operando_registro;
    POP(registros, memoria, tablaSegmentos);
    // POP ya pone el valor en IP (vía set) y actualiza SP

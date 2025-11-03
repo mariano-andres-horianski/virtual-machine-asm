@@ -89,9 +89,12 @@ int main(int argc, char *argv[]) {
 
 
     versionlocal = detectarVersion(nombreArchivo);
+    printf("versionlocal: %d\n",versionlocal);
     if (nombreArchivo2) {
         versionlocal = 2;
     }
+    
+    printf("versionlocal despues del if: %d\n",versionlocal);
     leerEncabezado(nombreArchivo, registros, tablaSegmento, memoria, &resultado, &num_segmentos, tamParamSegment);
 
     if (!resultado) {

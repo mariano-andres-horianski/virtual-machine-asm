@@ -582,6 +582,7 @@ void ejecucion(uint32_t registros[REG],infoSegmento tablaSegmento[ENT],uint8_t m
     leerInstrucciones(memoria, registros, tablaSegmento);
     while (registros[IP] != 0xFFFFFFFF && registros[IP] < registros[CS]+tamanio ){
         leerInstrucciones(memoria, registros, tablaSegmento);
+
     }
 
 }
